@@ -4,6 +4,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <random>
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
@@ -215,8 +216,13 @@ int main() {
   }
 
 
+    // Target lane index.
+    int lane = 1;
 
-    h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+    // Target velocity in mpH.
+    double ref_vel = 0.01;
+
+    h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy, &lane, &ref_vel](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -224,11 +230,7 @@ int main() {
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
 
-    // Target lane index.
-    int lane = 1;
-
-    // Target velocity in mpH.
-    double ref_vel = 49.5;
+    const double target_max_vel = 72;//49.5;
 
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -262,8 +264,60 @@ int main() {
             auto sensor_fusion = j[1]["sensor_fusion"];
 
 
-            // Follow lane with a spline.
             int prev_size = previous_path_x.size();
+
+            // If we have points, make car_s be representative of previous path.
+            if(prev_size > 0) {
+                car_s = end_path_s;
+            }
+
+            // Check for close-by cars: find ref_v to use.
+            bool too_close = false;
+            for(int i=0; i<sensor_fusion.size(); i++) {
+                // Car is in my lane.
+                float d = sensor_fusion[i][6];
+                // Each lane is 4 meters wide.
+                if(d < (2+4*lane+2) && d > (2+4*lane-2) ) {
+                    double vx = sensor_fusion[i][3];
+                    double vy = sensor_fusion[i][4];
+                    // Get velocity magnitude.
+                    double check_speed = sqrt(vx*vx + vy*vy);
+                    double check_car_s = sensor_fusion[i][5];
+
+                    // Project s value forward--we're using previous path points;
+                    // use "future" (i.e., present) value intead.
+                    check_car_s += ((double) prev_size * 0.02 * check_speed);
+                    if(check_car_s > car_s && check_car_s - car_s < 30) {
+                        // Lower reference velocity so we don't crash into the car ahead of us.
+                        too_close = true;
+
+                        // Could do something else, like changing lanes.
+
+                        if(lane == 0) {
+                            lane = 1;
+                        } else if(lane == 2) {
+                            lane = 1;
+                        } else {
+                            float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+                            if(r > .75) {
+                                lane = 2;
+                            } else {
+                                lane = 0;
+                            }
+                        }
+                        cout << "lane switched to " << lane << endl;
+                    }
+                }
+            }
+
+            if(too_close) {
+                ref_vel -= .224;
+            } else if(ref_vel < target_max_vel) {
+                ref_vel += .224;
+            }
+
+
+            // Follow lane with a spline.
             vector<double> ptsx;
             vector<double> ptsy;
 
@@ -358,11 +412,13 @@ int main() {
             double target_y = s(target_x);
             double target_dist = sqrt(target_x*target_x + target_y*target_y);
             double x_add_on = 0; // Local frame--start at origin.
-            double N = target_dist / (.02 * ref_vel / 2.24);
 
             // Fill up the rest of our path planner after filling it with previous points;
             // here we will always output 50 points.
             for(int i=1; i<= 50 - previous_path_x.size(); i++) {
+                // Calculate N in this loop, to allow for the possibility that we might want
+                // to update ref_vel in this loop.
+                double N = target_dist / (.02 * ref_vel / 2.24);
                 double x_point = x_add_on + (target_x)/ N;
                 double y_point = s(x_point);
 
