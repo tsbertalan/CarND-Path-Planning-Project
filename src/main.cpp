@@ -233,6 +233,9 @@ int main() {
         const int max_reused_points = 40;
         const int number_steps_planned = 50;
 
+        const double speed_decrement = -.4;
+        const double speed_increment = .2;
+
 
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -275,6 +278,13 @@ int main() {
             }
 
             // Check for close-by cars: find ref_v to use.
+            double coll_dist_scaled =
+                    min(collision_dist_high, max(collision_dist_low,
+                                                 collision_dist_high /
+                                                 (collision_speed_high - collision_speed_low)
+                                                 * (car_speed - collision_speed_low) + collision_dist_low
+                    ));
+            cout << "coll_dist_scaled = " << coll_dist_scaled << endl;
             bool too_close = false;
             for(int i=0; i<sensor_fusion.size(); i++) {
                 // Car is in my lane.
@@ -290,18 +300,12 @@ int main() {
                     // Project s value forward--we're using previous path points;
                     // use "future" (i.e., present) value intead.
                     check_car_s += ((double) prev_size * 0.02 * check_speed);
-                    double coll_dist_scaled =
-                            min(collision_dist_high, max(collision_dist_low,
-                                                         collision_dist_high /
-                                                         (collision_speed_high - collision_speed_low)
-                                                         * (car_speed - collision_speed_low) + collision_dist_low
-                            ));
+
                     if (check_car_s > car_s && check_car_s - car_s < coll_dist_scaled) {
                         // Lower reference velocity so we don't crash into the car ahead of us.
                         too_close = true;
 
                         // Could do something else, like changing lanes.
-
                         if(lane == 0) {
                             lane = 1;
                         } else if(lane == 2) {
@@ -320,9 +324,9 @@ int main() {
             }
 
             if(too_close) {
-                ref_vel -= .224;
+                ref_vel += speed_decrement;
             } else if(ref_vel < target_max_vel) {
-                ref_vel += .224;
+                ref_vel += speed_increment;
             }
 
 
