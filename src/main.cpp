@@ -230,7 +230,8 @@ int main() {
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
 
-    const double target_max_vel = 72;//49.5;
+    const double target_max_vel = 49.5;
+    const double collision_dist = 60;
 
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -287,7 +288,7 @@ int main() {
                     // Project s value forward--we're using previous path points;
                     // use "future" (i.e., present) value intead.
                     check_car_s += ((double) prev_size * 0.02 * check_speed);
-                    if(check_car_s > car_s && check_car_s - car_s < 30) {
+                    if(check_car_s > car_s && check_car_s - car_s < collision_dist) {
                         // Lower reference velocity so we don't crash into the car ahead of us.
                         too_close = true;
 
@@ -377,16 +378,16 @@ int main() {
             for(int i=0; i<ptsx.size(); i++) {
 
                 // Translate.
-                double shift_x = ptsx[i] - ref_x;
-                double shift_y = ptsy[i] - ref_y;
+                double shifted_x = ptsx[i] - ref_x;
+                double shifted_y = ptsy[i] - ref_y;
 
                 // Rotate (car reference angle to 0 degrees).
                 //For ref_yaw=0:
                 //ptsx[i] -= ref_x;
                 //ptsy[i] -= ref_y;
 
-                ptsx[i] = shift_x * cos(0 - ref_yaw) - shift_x * sin(0 - ref_yaw);
-                ptsy[i] = shift_x * sin(0 - ref_yaw) + shift_y * cos(0 - ref_yaw);
+                ptsx[i] = shifted_x * cos(0 - ref_yaw) - shifted_y * sin(0 - ref_yaw);
+                ptsy[i] = shifted_x * sin(0 - ref_yaw) + shifted_y * cos(0 - ref_yaw);
             }
 
             // Create a spline, and set anchor (x,y) points to the spline (in car coordinates).
