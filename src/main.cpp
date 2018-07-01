@@ -1,13 +1,8 @@
 #include <fstream>
-#include <math.h>
+#include <algorithm>
 #include <uWS/uWS.h>
-#include <chrono>
-#include <iostream>
 #include <thread>
-#include <random>
-#include <vector>
 #include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 #include "spline.h"
 
@@ -220,7 +215,7 @@ int main() {
     int lane = 1;
 
     // Target velocity in mpH.
-    double ref_vel = 0.01;
+    double ref_vel = 40.01;
 
     h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy, &lane, &ref_vel](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -231,7 +226,13 @@ int main() {
     //cout << sdata << endl;
 
     const double target_max_vel = 49.5;
-    const double collision_dist = 60;
+        const double collision_dist_high = 60;
+        const double collision_dist_low = 20;
+        const double collision_speed_high = 50;
+        const double collision_speed_low = 40;
+        const int max_reused_points = 40;
+        const int number_steps_planned = 50;
+
 
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
@@ -266,6 +267,7 @@ int main() {
 
 
             int prev_size = previous_path_x.size();
+            int prev_final_reused = min(max_reused_points, prev_size);
 
             // If we have points, make car_s be representative of previous path.
             if(prev_size > 0) {
@@ -288,7 +290,13 @@ int main() {
                     // Project s value forward--we're using previous path points;
                     // use "future" (i.e., present) value intead.
                     check_car_s += ((double) prev_size * 0.02 * check_speed);
-                    if(check_car_s > car_s && check_car_s - car_s < collision_dist) {
+                    double coll_dist_scaled =
+                            min(collision_dist_high, max(collision_dist_low,
+                                                         collision_dist_high /
+                                                         (collision_speed_high - collision_speed_low)
+                                                         * (car_speed - collision_speed_low) + collision_dist_low
+                            ));
+                    if (check_car_s > car_s && check_car_s - car_s < coll_dist_scaled) {
                         // Lower reference velocity so we don't crash into the car ahead of us.
                         too_close = true;
 
@@ -345,11 +353,11 @@ int main() {
 
             } else {
                 // Use the previous path's end points as starting reference.
-                ref_x = previous_path_x[prev_size - 1];
-                ref_y = previous_path_y[prev_size - 1];
+                ref_x = previous_path_x[prev_final_reused - 1];
+                ref_y = previous_path_y[prev_final_reused - 1];
 
-                double ref_x_prev = previous_path_x[prev_size - 2];
-                double ref_y_prev = previous_path_y[prev_size - 2];
+                double ref_x_prev = previous_path_x[prev_final_reused - 2];
+                double ref_y_prev = previous_path_y[prev_final_reused - 2];
 
                 ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
@@ -401,7 +409,7 @@ int main() {
             // Start with all of the previous path points from last time.
             // The simulator will left-pop off points as it reaches them,
             // so this could have anywhere between our goal path size and 0 points.
-            for(int i=0; i<previous_path_x.size(); i++) {
+            for (int i = 0; i < prev_final_reused; i++) {
                 next_x_vals.push_back(previous_path_x[i]);
                 next_y_vals.push_back(previous_path_y[i]);
             }
@@ -415,8 +423,8 @@ int main() {
             double x_add_on = 0; // Local frame--start at origin.
 
             // Fill up the rest of our path planner after filling it with previous points;
-            // here we will always output 50 points.
-            for(int i=1; i<= 50 - previous_path_x.size(); i++) {
+            // here we will always output number_steps_planned points.
+            for (int i = 1; i <= number_steps_planned - prev_final_reused; i++) {
                 // Calculate N in this loop, to allow for the possibility that we might want
                 // to update ref_vel in this loop.
                 double N = target_dist / (.02 * ref_vel / 2.24);
