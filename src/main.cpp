@@ -163,6 +163,19 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
+void printVec(vector<double> v, string name) {
+    cout << name << " = [";
+    if(v.size() > 0) {
+        if(v.size() > 1) {
+            for(int i=0; i<v.size() - 1; i++) {
+                cout << v[i] << ", ";
+            }
+        }
+        cout << v[v.size() - 1];
+    }
+    cout << "]" << endl;
+}
+
 int main() {
   uWS::Hub h;
 
@@ -244,50 +257,30 @@ int main() {
 
 			// define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 
-            double pos_x;
-            double pos_y;
-            double angle;
-            int path_size = previous_path_x.size();
+            double dist_inc = 0.3;
+            for(int i=0; i<50; i++) {
+                double next_s = car_s + (i + 1) * dist_inc;
+                double next_d = 6;
+                vector<double> xy = getXY(
+                        next_s, next_d,
+                        map_waypoints_s, map_waypoints_x, map_waypoints_y
+                );
 
-            for(int i = 0; i < path_size; i++)
-            {
-                next_x_vals.push_back(previous_path_x[i]);
-                next_y_vals.push_back(previous_path_y[i]);
+                next_x_vals.push_back(xy[0]);
+                next_y_vals.push_back(xy[1]);
             }
 
-            if(path_size == 0)
-            {
-                pos_x = car_x;
-                pos_y = car_y;
-                angle = deg2rad(car_yaw);
-            }
-            else
-            {
-                pos_x = previous_path_x[path_size-1];
-                pos_y = previous_path_y[path_size-1];
+            cout << "next_x_vals has " << next_x_vals.size() << " elems:" << endl;
+            printVec(next_x_vals, "next_x_vals");
 
-                double pos_x2 = previous_path_x[path_size-2];
-                double pos_y2 = previous_path_y[path_size-2];
-                angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
-            }
+            msgJson["next_x"] = next_x_vals;
+            msgJson["next_y"] = next_y_vals;
 
-            double dist_inc = 0.5;
-            for(int i = 0; i < 50-path_size; i++)
-            {
-                next_x_vals.push_back(pos_x+(dist_inc)*cos(angle+(i+1)*(pi()/100)));
-                next_y_vals.push_back(pos_y+(dist_inc)*sin(angle+(i+1)*(pi()/100)));
-                pos_x += (dist_inc)*cos(angle+(i+1)*(pi()/100));
-                pos_y += (dist_inc)*sin(angle+(i+1)*(pi()/100));
-            }
+            // Send.
+            auto msg = "42[\"control\","+ msgJson.dump()+"]";
+            //this_thread::sleep_for(chrono::milliseconds(1000));
+            ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
-          	msgJson["next_x"] = next_x_vals;
-          	msgJson["next_y"] = next_y_vals;
-
-          	auto msg = "42[\"control\","+ msgJson.dump()+"]";
-
-          	//this_thread::sleep_for(chrono::milliseconds(1000));
-          	ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-          
         }
       } else {
         // Manual driving
