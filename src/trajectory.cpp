@@ -108,6 +108,8 @@ void Trajectory::JMT_extend(
         unsigned long plan_length,
         WorldPose current,
         double current_speed,
+        double final_d,
+        double Ds,
         double DT
 ) {
     CarPose root = transform.toCar(current);
@@ -117,23 +119,17 @@ void Trajectory::JMT_extend(
     double root_dspeed = 0;
     double root_daccel = 0;
 
-    JMT_extend_from_root(
-            transform,
-            root_sspeed,
-            root_saccel,
-            root_dspeed,
-            root_daccel,
-            final_speed,
-            DT,
-            root,
-            plan_length
-    );
+    JMT_extend_from_root(transform, root_sspeed, root_saccel, root_dspeed, root_daccel, final_d, Ds, final_speed, DT,
+                         root,
+                         plan_length);
 }
 
 void Trajectory::JMT_extend(
         CoordinateTransformer transform,
         double final_speed,
         unsigned long plan_length,
+        double final_d,
+        double Ds,
         double DT
 ) {
 
@@ -166,36 +162,21 @@ void Trajectory::JMT_extend(
         }
     }
 
-    JMT_extend_from_root(
-            transform,
-            root_sspeed,
-            root_saccel,
-            root_dspeed,
-            root_daccel,
-            final_speed,
-            DT,
-            root,
-            plan_length
-    );
+    JMT_extend_from_root(transform, root_sspeed, root_saccel, root_dspeed, root_daccel, final_d, Ds, final_speed, DT,
+                         root,
+                         plan_length);
 }
 
-void Trajectory::JMT_extend_from_root(
-        CoordinateTransformer &transform,
-        double root_sspeed,
-        double root_saccel,
-        double root_dspeed,
-        double root_daccel,
-        double final_speed,
-        double DT,
-        CarPose root,
-        unsigned long plan_length
-) {
-    double Ds;
-//    DT = dt * (plan_length - plan.size());
-    Ds = (root_sspeed + final_speed) / 2 * DT;
+void Trajectory::JMT_extend_from_root(CoordinateTransformer &transform, double root_sspeed, double root_saccel,
+                                      double root_dspeed, double root_daccel, double final_d, double Ds,
+                                      double final_speed, double DT, CarPose root, unsigned long plan_length) {
+
+    if (Ds == -1) {
+        Ds = (root_sspeed + final_speed) / 2 * DT;
+    }
 
     FrenetPose frenetRoot = transform.toFrenet(root);
-    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=2 + 4 * 2, .yaw=0};
+    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=final_d, .yaw=0};
     CarPose leaf = transform.toCar(frenetLeaf);
 
     double xci, xcdi, xcddi, xcf, xcdf, xcddf, yci, ycdi, ycddi, ycf, ycdf, ycddf;
