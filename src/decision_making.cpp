@@ -2,6 +2,7 @@
 // Created by tsbertalan on 7/3/18.
 //
 #include "decision_making.h"
+#include "utils.h"
 
 
 Trajectory
@@ -18,9 +19,63 @@ Planner::make_plan(
 
     transform.set_reference(current);
 
+    // Get the curent lane index.
+    FrenetPose fp = transform.toFrenet(current);
+    int current_lane;
+    if (fp.d < 4)
+        current_lane = 0;
+    else if (fp.d < 8)
+        current_lane = 1;
+    else
+        current_lane = 2;
+
     // Consider cruising on the current path.
-    Trajectory plan = leftover.subtrajectory(min_reused_points + 1, 0, dt);
-    plan.JMT_extend(transform, target_max_speed, plan_length, current, current_speed);
+    Trajectory cruise = leftover.subtrajectory(min_reused_points + 1, 0, dt);
+    cruise.JMT_extend(
+            transform,
+            target_max_speed,
+            plan_length,
+            current,
+            current_speed,
+            current_lane * 4 + 2
+    );
+    plans.push_back(cruise);
+
+    // Switch to a random lane.
+    int lane;
+    switch (current_lane) {
+        case 0 :
+            lane = 1;
+            break;
+        case 1:
+            if (randAB() > .75)
+                lane = 2;
+            else
+                lane = 0;
+            break;
+        case 2:
+            lane = 1;
+    }
+    Trajectory rand_lane = leftover.subtrajectory(min_reused_points + 1, 0, dt);
+    rand_lane.JMT_extend(
+            transform,
+            target_max_speed,
+            plan_length,
+            current,
+            current_speed,
+            lane * 4 + 2
+    );
+    plans.push_back(rand_lane);
+
+    // Choose a plan.
+    // For now, choose randomly; usually just cruise.
+    Trajectory plan;
+    if (randAB() > .95) {
+        cout << "Changing lane from " << current_lane << " to " << lane << "." << endl;
+        plan = plans[1];
+    } else {
+        plan = plans[0];
+    }
 
     if (DEBUG) show_trajectory(plan);
 
@@ -76,4 +131,10 @@ void Planner::show_trajectory(Trajectory plan) {
     p4.plot_data(Xc, Yc, "points", "y vs x (car) [m]");
 
     cout << "Plots updated." << endl;
+}
+
+double Planner::randAB(double low, double high) {
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(low, high);
+    return dis(gen);
 }

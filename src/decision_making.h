@@ -7,18 +7,18 @@
 
 #include <vector>
 #include <algorithm>
-
-using namespace std;
-
-#include "jmt.h"
-#include "coordinates.h"
 #include <math.h>
+#include <random>
 
 // https://github.com/jal278/plotpipe
 #include "graph.h"
 
+#include "jmt.h"
+#include "coordinates.h"
 #include "trajectory.h"
 #include "neighbor.h"
+
+using namespace std;
 
 
 double measure_cost(Trajectory plan, vector<Neighbor> neighbors);
@@ -30,6 +30,9 @@ double measure_cost(Trajectory plan, vector<Neighbor> neighbors);
 class Planner {
 private:
     plot p1, p2, p3, p4;
+    std::random_device rd;
+
+    double randAB(double low = 0, double high = 1);
 
 public:
     CoordinateTransformer transform;
