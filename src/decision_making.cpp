@@ -20,15 +20,15 @@ Planner::make_plan(
     // TODO: Need more abstraction here.
 
     cout << "leftover.size()=" << leftover.size() << endl;
-    Trajectory cruise = leftover.subtrajectory(reuse_most_points + 1, 0, dt);
-    double t0 = dt * cruise.size();
+    Trajectory plan = leftover.subtrajectory(reuse_most_points + 1, 0, dt);
+    double t0 = dt * plan.size();
 
-    if (cruise.size() > 1)
-        transform.set_reference(cruise.poses[cruise.size() - 1]);
+    if (plan.size() > 1)
+        transform.set_reference(plan.poses[plan.size() - 1]);
     else
         transform.set_reference(current);
 
-    cout << "Kept " << cruise.size() << " points for a t0 of " << t0 << "." << endl;
+    cout << "Kept " << plan.size() << " points for a t0 of " << t0 << "." << endl;
 
     CarPose root;
     double root_sspeed = current_speed;
@@ -36,15 +36,15 @@ Planner::make_plan(
     double root_saccel = 0;
     double root_daccel = 0;
 
-    if (cruise.size() > 0) {
-        root = transform.toCar(cruise.poses[cruise.size() - 1]);
-        if (cruise.size() > 1) {
-            CarPose rm1 = transform.toCar(cruise.poses[cruise.size() - 2]);
+    if (plan.size() > 0) {
+        root = transform.toCar(plan.poses[plan.size() - 1]);
+        if (plan.size() > 1) {
+            CarPose rm1 = transform.toCar(plan.poses[plan.size() - 2]);
             root_sspeed = (root.x - rm1.x) / dt;
             root_dspeed = (root.y - rm1.y) / dt;
 
-            if (cruise.size() > 2) {
-                CarPose rm2 = transform.toCar(cruise.poses[cruise.size() - 3]);
+            if (plan.size() > 2) {
+                CarPose rm2 = transform.toCar(plan.poses[plan.size() - 3]);
 
                 double sspeedm1 = (rm1.x - rm2.x) / dt;
                 double dspeedm1 = (rm1.y - rm2.y) / dt;
@@ -60,7 +60,7 @@ Planner::make_plan(
     }
 
     double DT, Ds;
-//    DT = dt * (plan_length - cruise.size());
+//    DT = dt * (plan_length - plan.size());
     DT = .5;
     Ds = (root_sspeed + target_max_speed) / 2 * DT;
 
@@ -112,28 +112,15 @@ Planner::make_plan(
     cout << " at t=" << t0 + DT;
     cout << " (DT=" << DT << ")." << endl;
 
-    double t = t0;
-    while (t < t0 + DT) {
-        t += dt;
+    plan.extend(pt, plan_length, DT, transform);
 
-        vector<double> xy = pt(t - t0);
-        CarPose pose = {.x=xy[0], .y=xy[1], .yaw=0};
-        WorldPose wp = transform.toWorld(pose);
-        cruise.poses.push_back(wp);
-        cruise.times.push_back(t);
-
-        if (cruise.size() == plan_length) {
-            break;
-        }
-    }
-
-    cout << "Final t achieved is actually " << t << "." << endl;
-    cout << "final cruise has " << cruise.size() << " points." << endl;
+    cout << "Final t achieved is actually " << plan.times[plan.size() - 1] << "." << endl;
+    cout << "final plan has " << plan.size() << " points." << endl;
 
 
     // Maintain plots.
     vector<float> s, d;
-    for (WorldPose pose : cruise.poses) {
+    for (WorldPose pose : plan.poses) {
         FrenetPose fp = transform.toFrenet(pose);
         s.push_back(fp.s);
         d.push_back(fp.d);
@@ -142,25 +129,23 @@ Planner::make_plan(
     p1.plot_data(s, d, "points", "d vs s");
 
     vector<float> X, Y;
-    for (WorldPose pose : cruise.poses) {
+    for (WorldPose pose : plan.poses) {
         X.push_back(pose.x);
         Y.push_back(pose.y);
     }
     p2.plot_data(X, Y, "points", "y vs x (world)");
 
     vector<float> T, V;
-    for (int i = 1; i < cruise.size(); i++) {
-        T.push_back(cruise.times[i]);
-        double dx = cruise.poses[i].x - cruise.poses[i - 1].x;
-        double dy = cruise.poses[i].y - cruise.poses[i - 1].y;
+    for (int i = 1; i < plan.size(); i++) {
+        T.push_back(plan.times[i]);
+        double dx = plan.poses[i].x - plan.poses[i - 1].x;
+        double dy = plan.poses[i].y - plan.poses[i - 1].y;
         V.push_back(sqrt(pow(dx, 2) + pow(dy, 2)) / dt);
     }
     p3.plot_data(T, V, "points", "speed vs t");
 
-//    cruise.times[1] - cruise.times[0]
-
     vector<float> Xc, Yc;
-    for (WorldPose pose : cruise.poses) {
+    for (WorldPose pose : plan.poses) {
         CarPose cp = transform.toCar(pose);
         Xc.push_back(cp.x);
         Yc.push_back(cp.y);
@@ -173,11 +158,11 @@ Planner::make_plan(
         cout << "xcdi=" << xcdi << endl;
     }
 
-    return cruise;
+    return plan;
 }
 
 Planner::Planner(
-        const CoordinateTransformer &transform,
+        CoordinateTransformer &transform,
         double target_max_speed,
         int plan_length,
         int min_reused_points

@@ -7,11 +7,14 @@
 
 #include <vector>
 #include "coordinates.h"
+#include "jmt.h"
 
 
 class Trajectory {
 private:
     void init(std::vector<double> X, std::vector<double> Y, double dt = .02);
+
+    double dt;
 
 public:
     Trajectory(std::vector<double> X, std::vector<double> Y, double dt = .02);
@@ -21,6 +24,8 @@ public:
     std::vector<std::vector<double>> decompose();
 
     Trajectory subtrajectory(int end, int start = 0, double dt = .02);
+
+    void extend(PolyTrajectory path, unsigned long max_length, double DT, CoordinateTransformer &transform);
 
     std::vector<WorldPose> poses;
     std::vector<double> times;

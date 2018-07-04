@@ -50,6 +50,7 @@ Trajectory Trajectory::subtrajectory(int end, int start, double dt) {
 }
 
 void Trajectory::init(vector<double> X, vector<double> Y, double dt) {
+    this->dt = dt;
     double last_yaw = 0;
     double t = -dt;
     for (int i = 0; i < X.size(); i++) {
@@ -69,4 +70,33 @@ void Trajectory::init(vector<double> X, vector<double> Y, double dt) {
 
 unsigned long Trajectory::size() {
     return poses.size();
+}
+
+void Trajectory::extend(
+        PolyTrajectory path,
+        unsigned long max_length,
+        double DT,
+        CoordinateTransformer &transform
+) {
+    double t0;
+    if (size() > 0) {
+        t0 = times[size() - 1];
+    } else {
+        t0 = 0;
+    }
+    double t = t0;
+    while (t < t0 + DT) {
+        t += dt;
+
+        vector<double> xy = path(t - t0);
+        CarPose pose = {.x=xy[0], .y=xy[1], .yaw=0};
+        WorldPose wp = transform.toWorld(pose);
+        poses.push_back(wp);
+        times.push_back(t);
+
+        if (size() == max_length) {
+            break;
+        }
+    }
+
 }
