@@ -13,7 +13,7 @@ Planner::make_plan(
     // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
 
-    const double dt = .007;
+    const double dt = .02;
 
     // Consider cruising on the current path.
     unsigned long reuse_most_points = min_reused_points;
