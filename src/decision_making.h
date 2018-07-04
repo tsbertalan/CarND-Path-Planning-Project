@@ -40,7 +40,7 @@ public:
 
     Planner(
             CoordinateTransformer &transform,
-            double target_max_speed = 45 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.), // m/s, NOT mph
+            double target_max_speed = 42 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.), // m/s, NOT mph
             int plan_length = 500,
             int min_reused_points = 4
     );
@@ -49,8 +49,11 @@ public:
             WorldPose current,
             double current_speed,
             Trajectory leftover,
-            vector<Neighbor> neighbors
+            vector<Neighbor> neighbors,
+            const double dt = .02
     );
+
+    void show_trajectory(Trajectory plan);
 
 };
 

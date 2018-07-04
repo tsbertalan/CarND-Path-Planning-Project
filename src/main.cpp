@@ -162,22 +162,19 @@ int main() {
                     );
 
                     vector<vector<double>> next_xy_vals = new_trajectory.decompose();
-                    vector<double> next_x_vals = next_xy_vals[0];
-                    vector<double> next_y_vals = next_xy_vals[1];
 
                     json msgJson;
-                    msgJson["next_x"] = next_x_vals;
-                    msgJson["next_y"] = next_y_vals;
+                    msgJson["next_x"] = next_xy_vals[0];
+                    msgJson["next_y"] = next_xy_vals[1];
 
                     // Send.
                     auto msg = "42[\"control\"," + msgJson.dump() + "]";
                     //this_thread::sleep_for(chrono::milliseconds(1000));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 
-                    cout << "Commands sent." << endl;
-
                 }
             } else {
+
                 // Manual driving
                 std::string msg = "42[\"manual\",{}]";
                 ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
