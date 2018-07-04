@@ -22,26 +22,31 @@ Planner::make_plan(
     Trajectory cruise = leftover.subtrajectory(min_reused_points + 1);
     double t0 = dt * cruise.size();
 
+    if (cruise.size() > 1)
+        transform.set_reference(cruise.poses[cruise.size() - 1]);
+    else
+        transform.set_reference(current);
+
     cout << "Kept " << cruise.size() << " points for a t0 of " << t0 << "." << endl;
 
-    FrenetPose root;
+    CarPose root;
     double root_sspeed = current_speed;
     double root_dspeed = 0;
     double root_saccel = 0;
     double root_daccel = 0;
 
     if (cruise.size() > 0) {
-        root = transform.toFrenet(cruise.poses[cruise.size() - 1]);
+        root = transform.toCar(cruise.poses[cruise.size() - 1]);
         if (cruise.size() > 1) {
-            FrenetPose rm1 = transform.toFrenet(cruise.poses[cruise.size() - 2]);
-            root_sspeed = (root.s - rm1.s) / dt;
-            root_dspeed = (root.d - rm1.d) / dt;
+            CarPose rm1 = transform.toCar(cruise.poses[cruise.size() - 2]);
+            root_sspeed = (root.x - rm1.x) / dt;
+            root_dspeed = (root.y - rm1.y) / dt;
 
             if (cruise.size() > 2) {
-                FrenetPose rm2 = transform.toFrenet(cruise.poses[cruise.size() - 3]);
+                CarPose rm2 = transform.toCar(cruise.poses[cruise.size() - 3]);
 
-                double sspeedm1 = (rm1.s - rm2.s) / dt;
-                double dspeedm1 = (rm1.d - rm2.d) / dt;
+                double sspeedm1 = (rm1.x - rm2.x) / dt;
+                double dspeedm1 = (rm1.y - rm2.y) / dt;
 
                 root_saccel = (root_sspeed - sspeedm1) / dt;
                 root_daccel = (root_dspeed - dspeedm1) / dt;
@@ -50,27 +55,31 @@ Planner::make_plan(
 
 
     } else {
-        root = transform.toFrenet(current);
+        root = transform.toCar(current);
     }
 
     double DT, Ds;
     DT = .02 * (plan_length - cruise.size());
-    Ds = (current_speed + target_max_speed) / 2 * DT;
+    Ds = (root_sspeed + target_max_speed) / 2 * DT;
+
+    FrenetPose frenetRoot = transform.toFrenet(root);
+    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=2, .yaw=0};
+    CarPose leaf = transform.toCar(frenetLeaf);
 
     double si, sdi, sddi, sf, sdf, sddf, di, ddi, dddi, df, ddf, dddf;
-    si = root.s;
+    si = root.x;
     sdi = root_sspeed;
     sddi = root_saccel;
 
-    sf = root.s + Ds;
+    sf = leaf.x;
     sdf = target_max_speed;
     sddf = 0;
 
-    di = root.d;
+    di = root.y;
     ddi = root_dspeed;
     dddi = root_daccel;
 
-    df = 2;
+    df = leaf.y;
     ddf = 0;
     dddf = 0;
 
@@ -105,19 +114,19 @@ Planner::make_plan(
     while (t < t0 + DT) {
         t += dt;
 
-        vector<double> sd = pt(t - t0);
-        FrenetPose frenetPose = {.s = sd[0], .d=sd[1], .yaw=0};
-        WorldPose wp = transform.toWorld(frenetPose);
+        vector<double> xy = pt(t - t0);
+        CarPose pose = {.x=xy[0], .y=xy[1], .yaw=0};
+        WorldPose wp = transform.toWorld(pose);
         cruise.poses.push_back(wp);
         cruise.times.push_back(t);
 
         if (cruise.size() == plan_length) {
             break;
         }
-
     }
 
     cout << "Final t achieved is actually " << t << "." << endl;
+    cout << "final cruise has " << cruise.size() << " points." << endl;
 
 
     // Maintain plots.
@@ -135,7 +144,7 @@ Planner::make_plan(
         X.push_back(pose.x);
         Y.push_back(pose.y);
     }
-    p2.plot_data(X, Y, "points", "y vs x");
+    p2.plot_data(X, Y, "points", "y vs x (world)");
 
     vector<float> T, V;
     for (int i = 1; i < cruise.size(); i++) {
@@ -145,6 +154,14 @@ Planner::make_plan(
         V.push_back(sqrt(pow(dx, 2) + pow(dy, 2)) / dt);
     }
     p3.plot_data(T, V, "points", "speed vs t");
+
+    vector<float> Xc, Yc;
+    for (auto pose : cruise.poses) {
+        CarPose cp = transform.toCar(pose);
+        Xc.push_back(cp.x);
+        Yc.push_back(cp.y);
+    }
+    p4.plot_data(Xc, Yc, "points", "y vs x (car)");
 
     cout << "current_speed=" << current_speed << "; Ds=" << Ds << endl;
 

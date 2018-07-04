@@ -29,7 +29,7 @@ double measure_cost(Trajectory plan, vector<Neighbor> neighbors);
 
 class Planner {
 private:
-    plot p1, p2, p3;
+    plot p1, p2, p3, p4;
 
 public:
     CoordinateTransformer transform;
@@ -42,7 +42,7 @@ public:
             const CoordinateTransformer &transform,
             double target_max_speed = 49.5,
             int plan_length = 50,
-            int min_reused_points = 4
+            int min_reused_points = 12
     );
 
     Trajectory make_plan(
