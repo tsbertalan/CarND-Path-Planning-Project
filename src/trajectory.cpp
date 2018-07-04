@@ -112,6 +112,11 @@ void Trajectory::JMT_extend(
         double Ds,
         double DT
 ) {
+    if (size() > 1)
+        transform.set_reference(poses[size() - 1]);
+    else
+        transform.set_reference(current);
+
     CarPose root = transform.toCar(current);
 
     double root_sspeed = current_speed;
@@ -119,57 +124,27 @@ void Trajectory::JMT_extend(
     double root_dspeed = 0;
     double root_daccel = 0;
 
-    JMT_extend_from_root(transform, root_sspeed, root_saccel, root_dspeed, root_daccel, final_d, Ds, final_speed, DT,
-                         root,
-                         plan_length);
-}
-
-void Trajectory::JMT_extend(
-        CoordinateTransformer transform,
-        double final_speed,
-        unsigned long plan_length,
-        double final_d,
-        double Ds,
-        double DT
-) {
-
     double t0 = dt * size();
 
-    if (size() > 1)
-        transform.set_reference(poses[size() - 1]);
 
-    double root_sspeed = 0;
-    double root_dspeed = 0;
-    double root_saccel = 0;
-    double root_daccel = 0;
+    if (size() > 0) {
+        root = transform.toCar(poses[size() - 1]);
+        if (size() > 1) {
+            CarPose rm1 = transform.toCar(poses[size() - 2]);
+            root_sspeed = (root.x - rm1.x) / dt;
+            root_dspeed = (root.y - rm1.y) / dt;
 
-    assert(size() > 0); // If extending an empty trajectory, need to pass initial speed and location.
+            if (size() > 2) {
+                CarPose rm2 = transform.toCar(poses[size() - 3]);
 
-    CarPose root = transform.toCar(poses[size() - 1]);
-    if (size() > 1) {
-        CarPose rm1 = transform.toCar(poses[size() - 2]);
-        root_sspeed = (root.x - rm1.x) / dt;
-        root_dspeed = (root.y - rm1.y) / dt;
+                double sspeedm1 = (rm1.x - rm2.x) / dt;
+                double dspeedm1 = (rm1.y - rm2.y) / dt;
 
-        if (size() > 2) {
-            CarPose rm2 = transform.toCar(poses[size() - 3]);
-
-            double sspeedm1 = (rm1.x - rm2.x) / dt;
-            double dspeedm1 = (rm1.y - rm2.y) / dt;
-
-            root_saccel = (root_sspeed - sspeedm1) / dt;
-            root_daccel = (root_dspeed - dspeedm1) / dt;
+                root_saccel = (root_sspeed - sspeedm1) / dt;
+                root_daccel = (root_dspeed - dspeedm1) / dt;
+            }
         }
     }
-
-    JMT_extend_from_root(transform, root_sspeed, root_saccel, root_dspeed, root_daccel, final_d, Ds, final_speed, DT,
-                         root,
-                         plan_length);
-}
-
-void Trajectory::JMT_extend_from_root(CoordinateTransformer &transform, double root_sspeed, double root_saccel,
-                                      double root_dspeed, double root_daccel, double final_d, double Ds,
-                                      double final_speed, double DT, CarPose root, unsigned long plan_length) {
 
     if (Ds == -1) {
         Ds = (root_sspeed + final_speed) / 2 * DT;

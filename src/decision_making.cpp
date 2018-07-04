@@ -20,10 +20,7 @@ Planner::make_plan(
 
     // Consider cruising on the current path.
     Trajectory plan = leftover.subtrajectory(min_reused_points + 1, 0, dt);
-    if (plan.size() > 0)
-        plan.JMT_extend(transform, target_max_speed, plan_length);
-    else
-        plan.JMT_extend(transform, target_max_speed, plan_length, current, current_speed);
+    plan.JMT_extend(transform, target_max_speed, plan_length, current, current_speed);
 
     if (DEBUG) show_trajectory(plan);
 
@@ -77,4 +74,6 @@ void Planner::show_trajectory(Trajectory plan) {
         Yc.push_back(cp.y);
     }
     p4.plot_data(Xc, Yc, "points", "y vs x (car) [m]");
+
+    cout << "Plots updated." << endl;
 }

@@ -18,9 +18,6 @@ private:
 
     void extend(PolyTrajectory path, unsigned long max_length, double DT, CoordinateTransformer &transform);
 
-    void JMT_extend_from_root(CoordinateTransformer &transform, double root_sspeed, double root_saccel,
-                              double root_dspeed, double root_daccel, double final_d, double Ds,
-                              double final_speed, double DT, CarPose root, unsigned long plan_length);
 
 public:
     std::vector<WorldPose> poses;
@@ -28,7 +25,7 @@ public:
 
     Trajectory(std::vector<double> X, std::vector<double> Y, double dt = .02);
 
-    Trajectory(double dt = .02);
+    explicit Trajectory(double dt = .02);
 
     unsigned long size();
 
@@ -40,20 +37,11 @@ public:
             CoordinateTransformer transform,
             double final_speed,
             unsigned long plan_length,
-            double final_d = 2 + 4 * 2,
-            double Ds = -1,
-            double DT = .5
-    );
-
-    void JMT_extend(
-            CoordinateTransformer transform,
-            double final_speed,
-            unsigned long plan_length,
             WorldPose current,
             double current_speed,
             double final_d = 2 + 4 * 2,
             double Ds = -1,
-            double DT = .5
+            double DT = .75
     );
 
 };
