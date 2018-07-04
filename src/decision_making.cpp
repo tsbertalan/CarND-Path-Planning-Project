@@ -13,13 +13,14 @@ Planner::make_plan(
     // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
 
-    const double dt = .02;
+    const double dt = .007;
 
     // Consider cruising on the current path.
+    unsigned long reuse_most_points = min_reused_points;
     // TODO: Need more abstraction here.
 
     cout << "leftover.size()=" << leftover.size() << endl;
-    Trajectory cruise = leftover.subtrajectory(min_reused_points + 1);
+    Trajectory cruise = leftover.subtrajectory(reuse_most_points + 1, 0, dt);
     double t0 = dt * cruise.size();
 
     if (cruise.size() > 1)
@@ -59,54 +60,55 @@ Planner::make_plan(
     }
 
     double DT, Ds;
-    DT = .02 * (plan_length - cruise.size());
+//    DT = dt * (plan_length - cruise.size());
+    DT = .5;
     Ds = (root_sspeed + target_max_speed) / 2 * DT;
 
     FrenetPose frenetRoot = transform.toFrenet(root);
-    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=2, .yaw=0};
+    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=2 + 4 * 2, .yaw=0};
     CarPose leaf = transform.toCar(frenetLeaf);
 
-    double si, sdi, sddi, sf, sdf, sddf, di, ddi, dddi, df, ddf, dddf;
-    si = root.x;
-    sdi = root_sspeed;
-    sddi = root_saccel;
+    double xci, xcdi, xcddi, xcf, xcdf, xcddf, yci, ycdi, ycddi, ycf, ycdf, ycddf;
+    xci = root.x;
+    xcdi = root_sspeed;
+    xcddi = root_saccel;
 
-    sf = leaf.x;
-    sdf = target_max_speed;
-    sddf = 0;
+    xcf = leaf.x;
+    xcdf = target_max_speed;
+    xcddf = 0;
 
-    di = root.y;
-    ddi = root_dspeed;
-    dddi = root_daccel;
+    yci = root.y;
+    ycdi = root_dspeed;
+    ycddi = root_daccel;
 
-    df = leaf.y;
-    ddf = 0;
-    dddf = 0;
+    ycf = leaf.y;
+    ycdf = 0;
+    ycddf = 0;
 
     PolyTrajectory pt = JMT(
-            si, sdi, sddi,
-            sf, sdf, sddf,
-            di, ddi, dddi,
-            df, ddf, dddf,
+            xci, xcdi, xcddi,
+            xcf, xcdf, xcddf,
+            yci, ycdi, ycddi,
+            ycf, ycdf, ycddf,
             DT
     );
 
     cout << "JMT = ";
     cout << "(";
-    cout << si << "," << sdi << "," << sddi << ",";
-    cout << sf << "," << sdf << "," << sddf;
+    cout << xci << "," << xcdi << "," << xcddi << ",";
+    cout << xcf << "," << xcdf << "," << xcddf;
     cout << "), ";
 
     cout << "(";
-    cout << di << "," << ddi << "," << dddi << ",";
-    cout << df << "," << ddf << "," << dddf;
+    cout << yci << "," << ycdi << "," << ycddi << ",";
+    cout << ycf << "," << ycdf << "," << ycddf;
     cout << ")" << endl;
 
-    cout << "Planning JMT from (s,d)=";
-    cout << "(" << si << "," << di << ")";
+    cout << "Planning JMT from (xc,yc)=";
+    cout << "(" << xci << "," << yci << ")";
     cout << " at t0=" << t0;
     cout << " to ";
-    cout << "(" << sf << "," << df << ")";
+    cout << "(" << xcf << "," << ycf << ")";
     cout << " at t=" << t0 + DT;
     cout << " (DT=" << DT << ")." << endl;
 
@@ -131,7 +133,7 @@ Planner::make_plan(
 
     // Maintain plots.
     vector<float> s, d;
-    for (auto pose : cruise.poses) {
+    for (WorldPose pose : cruise.poses) {
         FrenetPose fp = transform.toFrenet(pose);
         s.push_back(fp.s);
         d.push_back(fp.d);
@@ -140,7 +142,7 @@ Planner::make_plan(
     p1.plot_data(s, d, "points", "d vs s");
 
     vector<float> X, Y;
-    for (auto pose : cruise.poses) {
+    for (WorldPose pose : cruise.poses) {
         X.push_back(pose.x);
         Y.push_back(pose.y);
     }
@@ -155,8 +157,10 @@ Planner::make_plan(
     }
     p3.plot_data(T, V, "points", "speed vs t");
 
+//    cruise.times[1] - cruise.times[0]
+
     vector<float> Xc, Yc;
-    for (auto pose : cruise.poses) {
+    for (WorldPose pose : cruise.poses) {
         CarPose cp = transform.toCar(pose);
         Xc.push_back(cp.x);
         Yc.push_back(cp.y);
@@ -165,8 +169,8 @@ Planner::make_plan(
 
     cout << "current_speed=" << current_speed << "; Ds=" << Ds << endl;
 
-    if (sdi > 1) {
-        cout << "sdi=" << sdi << endl;
+    if (xcdi > 1) {
+        cout << "xcdi=" << xcdi << endl;
     }
 
     return cruise;

@@ -25,8 +25,8 @@ vector<vector<double>> Trajectory::decompose() {
     return {X, Y};
 }
 
-Trajectory Trajectory::subtrajectory(int end, int start) {
-    Trajectory out;
+Trajectory Trajectory::subtrajectory(int end, int start, double dt) {
+    Trajectory out({}, {}, dt);
 
     if (end < 0) {
         end += poses.size() + 1;
@@ -62,7 +62,7 @@ void Trajectory::init(vector<double> X, vector<double> Y, double dt) {
             wp.yaw = last_yaw;
         }
 
-        poses.push_back({.x=X[i], .y=Y[i], .yaw=0});
+        poses.push_back(wp);
         times.push_back(t);
     }
 }

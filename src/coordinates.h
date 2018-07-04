@@ -96,9 +96,7 @@ public:
     CarPose toCar(WorldPose from);
 
     CarPose toCar(FrenetPose from);
-
     FrenetPose toFrenet(CarPose from);
-
     FrenetPose toFrenet(WorldPose from);
 
 };

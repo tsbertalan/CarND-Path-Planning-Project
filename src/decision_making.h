@@ -36,13 +36,13 @@ public:
     double target_max_speed;
     int current_intended_lane;
     int plan_length;
-    int min_reused_points;
+    unsigned long min_reused_points;
 
     Planner(
             const CoordinateTransformer &transform,
             double target_max_speed = 49.5,
-            int plan_length = 50,
-            int min_reused_points = 12
+            int plan_length = 500,
+            int min_reused_points = 4
     );
 
     Trajectory make_plan(

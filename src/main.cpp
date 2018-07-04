@@ -147,7 +147,7 @@ int main() {
                     // Sensor Fusion Data, a list of all other cars on the same side of the road.
                     auto sensor_fusion = j[1]["sensor_fusion"];
 
-                    Trajectory previous_trajectory(previous_path_x, previous_path_y);
+                    Trajectory previous_trajectory(previous_path_x, previous_path_y, .007);
                     vector<Neighbor> neighbors;
                     for (auto sf : sensor_fusion) {
                         //sf = id, x, y, vx, vy, s, d

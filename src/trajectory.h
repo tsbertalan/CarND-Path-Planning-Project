@@ -20,7 +20,7 @@ public:
 
     std::vector<std::vector<double>> decompose();
 
-    Trajectory subtrajectory(int end, int start = 0);
+    Trajectory subtrajectory(int end, int start = 0, double dt = .02);
 
     std::vector<WorldPose> poses;
     std::vector<double> times;
