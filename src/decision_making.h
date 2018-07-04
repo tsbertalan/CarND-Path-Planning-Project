@@ -50,7 +50,8 @@ public:
             double current_speed,
             Trajectory leftover,
             vector<Neighbor> neighbors,
-            const double dt = .02
+            const double dt = .02,
+            bool DEBUG = false
     );
 
     void show_trajectory(Trajectory plan);

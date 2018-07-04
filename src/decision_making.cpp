@@ -10,91 +10,22 @@ Planner::make_plan(
         double current_speed,
         Trajectory leftover,
         vector<Neighbor> neighbors,
-        const double dt
+        const double dt,
+        bool DEBUG
 ) {
     // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
 
+    transform.set_reference(current);
 
     // Consider cruising on the current path.
-    unsigned long reuse_most_points = min_reused_points;
-    // TODO: Need more abstraction here.
-
-    Trajectory plan = leftover.subtrajectory(reuse_most_points + 1, 0, dt);
-    double t0 = dt * plan.size();
-
-    if (plan.size() > 1)
-        transform.set_reference(plan.poses[plan.size() - 1]);
+    Trajectory plan = leftover.subtrajectory(min_reused_points + 1, 0, dt);
+    if (plan.size() > 0)
+        plan.JMT_extend(transform, target_max_speed, plan_length);
     else
-        transform.set_reference(current);
+        plan.JMT_extend(transform, target_max_speed, plan_length, current, current_speed);
 
-    CarPose root;
-    double root_sspeed = current_speed;
-    double root_dspeed = 0;
-    double root_saccel = 0;
-    double root_daccel = 0;
-
-    if (plan.size() > 0) {
-        root = transform.toCar(plan.poses[plan.size() - 1]);
-        if (plan.size() > 1) {
-            CarPose rm1 = transform.toCar(plan.poses[plan.size() - 2]);
-            root_sspeed = (root.x - rm1.x) / dt;
-            root_dspeed = (root.y - rm1.y) / dt;
-
-            if (plan.size() > 2) {
-                CarPose rm2 = transform.toCar(plan.poses[plan.size() - 3]);
-
-                double sspeedm1 = (rm1.x - rm2.x) / dt;
-                double dspeedm1 = (rm1.y - rm2.y) / dt;
-
-                root_saccel = (root_sspeed - sspeedm1) / dt;
-                root_daccel = (root_dspeed - dspeedm1) / dt;
-            }
-        }
-
-
-    } else {
-        root = transform.toCar(current);
-    }
-
-    double DT, Ds;
-//    DT = dt * (plan_length - plan.size());
-    DT = .9;
-    Ds = (root_sspeed + target_max_speed) / 2 * DT;
-
-    FrenetPose frenetRoot = transform.toFrenet(root);
-    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=2 + 4 * 2, .yaw=0};
-    CarPose leaf = transform.toCar(frenetLeaf);
-
-    double xci, xcdi, xcddi, xcf, xcdf, xcddf, yci, ycdi, ycddi, ycf, ycdf, ycddf;
-    xci = root.x;
-    xcdi = root_sspeed;
-    xcddi = root_saccel;
-
-    xcf = leaf.x;
-    xcdf = target_max_speed;
-    xcddf = 0;
-
-    yci = root.y;
-    ycdi = root_dspeed;
-    ycddi = root_daccel;
-
-    ycf = leaf.y;
-    ycdf = 0;
-    ycddf = 0;
-
-    PolyTrajectory pt = JMT(
-            xci, xcdi, xcddi,
-            xcf, xcdf, xcddf,
-            yci, ycdi, ycddi,
-            ycf, ycdf, ycddf,
-            DT
-    );
-
-
-    plan.extend(pt, plan_length, DT, transform);
-
-    //show_trajectory(plan);
+    if (DEBUG) show_trajectory(plan);
 
     return plan;
 }

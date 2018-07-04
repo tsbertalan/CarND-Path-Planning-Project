@@ -3,6 +3,7 @@
 //
 
 #include "trajectory.h"
+#include <assert.h>
 
 using namespace std;
 
@@ -99,4 +100,128 @@ void Trajectory::extend(
         }
     }
 
+}
+
+void Trajectory::JMT_extend(
+        CoordinateTransformer transform,
+        double final_speed,
+        unsigned long plan_length,
+        WorldPose current,
+        double current_speed,
+        double DT
+) {
+    CarPose root = transform.toCar(current);
+
+    double root_sspeed = current_speed;
+    double root_saccel = 0;
+    double root_dspeed = 0;
+    double root_daccel = 0;
+
+    JMT_extend_from_root(
+            transform,
+            root_sspeed,
+            root_saccel,
+            root_dspeed,
+            root_daccel,
+            final_speed,
+            DT,
+            root,
+            plan_length
+    );
+}
+
+void Trajectory::JMT_extend(
+        CoordinateTransformer transform,
+        double final_speed,
+        unsigned long plan_length,
+        double DT
+) {
+
+    double t0 = dt * size();
+
+    if (size() > 1)
+        transform.set_reference(poses[size() - 1]);
+
+    double root_sspeed = 0;
+    double root_dspeed = 0;
+    double root_saccel = 0;
+    double root_daccel = 0;
+
+    assert(size() > 0); // If extending an empty trajectory, need to pass initial speed and location.
+
+    CarPose root = transform.toCar(poses[size() - 1]);
+    if (size() > 1) {
+        CarPose rm1 = transform.toCar(poses[size() - 2]);
+        root_sspeed = (root.x - rm1.x) / dt;
+        root_dspeed = (root.y - rm1.y) / dt;
+
+        if (size() > 2) {
+            CarPose rm2 = transform.toCar(poses[size() - 3]);
+
+            double sspeedm1 = (rm1.x - rm2.x) / dt;
+            double dspeedm1 = (rm1.y - rm2.y) / dt;
+
+            root_saccel = (root_sspeed - sspeedm1) / dt;
+            root_daccel = (root_dspeed - dspeedm1) / dt;
+        }
+    }
+
+    JMT_extend_from_root(
+            transform,
+            root_sspeed,
+            root_saccel,
+            root_dspeed,
+            root_daccel,
+            final_speed,
+            DT,
+            root,
+            plan_length
+    );
+}
+
+void Trajectory::JMT_extend_from_root(
+        CoordinateTransformer &transform,
+        double root_sspeed,
+        double root_saccel,
+        double root_dspeed,
+        double root_daccel,
+        double final_speed,
+        double DT,
+        CarPose root,
+        unsigned long plan_length
+) {
+    double Ds;
+//    DT = dt * (plan_length - plan.size());
+    Ds = (root_sspeed + final_speed) / 2 * DT;
+
+    FrenetPose frenetRoot = transform.toFrenet(root);
+    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=2 + 4 * 2, .yaw=0};
+    CarPose leaf = transform.toCar(frenetLeaf);
+
+    double xci, xcdi, xcddi, xcf, xcdf, xcddf, yci, ycdi, ycddi, ycf, ycdf, ycddf;
+    xci = root.x;
+    xcdi = root_sspeed;
+    xcddi = root_saccel;
+
+    xcf = leaf.x;
+    xcdf = final_speed;
+    xcddf = 0;
+
+    yci = root.y;
+    ycdi = root_dspeed;
+    ycddi = root_daccel;
+
+    ycf = leaf.y;
+    ycdf = 0;
+    ycddf = 0;
+
+    PolyTrajectory pt = JMT(
+            xci, xcdi, xcddi,
+            xcf, xcdf, xcddf,
+            yci, ycdi, ycddi,
+            ycf, ycdf, ycddf,
+            DT
+    );
+
+    extend(pt, plan_length, DT, transform);
 }
