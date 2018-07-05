@@ -221,9 +221,13 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
     const double FACTOR_DISTANCE = 8;
     const double FACTOR_ACCEL = 1. / 30;
     const double CRITICAL_DISTANCE = 4.5;
+    const double GOAL_SPEED = 45 * MIPH_TO_MPS;
+    const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
+    const double FACTOR_NEGATIVE_SPEED_DEVIATION = .1;
+    const double FACTOR_VDEV = .1;
 
     int print_width = 12;
-    vector<const char *> cost_names = {"dist", "accel"};
+    vector<const char *> cost_names = {"dist", "accel", "vdev"};
     vector<double> cost_parts;
     if (label.length() > 0 && heading) {
         cout << "           ";
@@ -233,7 +237,7 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
         cout << endl;
     }
 
-    // Check whether the plan entails likely collisions.
+    //// Check whether the plan entails likely collisions.
     double cost_dist = 0;
     int ineighbor = -1;
 
@@ -266,14 +270,11 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
             Yn.push_back(other.y);
         }
     }
-
-    // Use mean.
     cost_dist /= neighbors.size() * plan.size();
-
     cost_parts.push_back(cost_dist * FACTOR_DISTANCE);
 
 
-    // Add up the total acceleration.
+    //// Add up the total acceleration.
     double cost_accel = 0;
     for (int i = 2; i < plan.size(); i++) {
         WorldPose pose0 = plan.poses[i - 2];
@@ -290,13 +291,32 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
         double accel = fabs((v1 - v0) / (t1 - t0));
         cost_accel += accel;
     }
-
-    // Use mean.
     cost_accel /= plan.size() - 2;
-
     cost_parts.push_back(cost_accel * FACTOR_ACCEL);
 
-    // Total the cost.
+
+    //// Find the mean deviation from goal velocity; penalizing larger differences more.
+    double cost_vdeviation = 0;
+    for (int i = 1; i < plan.size(); i++) {
+        double dt = plan.times[i] - plan.times[i - 1];
+        WorldPose p1 = plan.poses[i - 1];
+        WorldPose p2 = plan.poses[i - 0];
+        double dxdt = (p2.x - p1.x) / dt;
+        double dydt = (p2.y - p1.y) / dt;
+        double speed = sqrt(dxdt * dxdt + dydt * dydt);
+        //double speed = worldDist(p1, p2) / fabs(dt);
+        double vdev = speed - GOAL_SPEED;
+        if (vdev > 0)
+            vdev *= FACTOR_POSITIVE_SPEED_DEVIATION;
+        else
+            vdev *= -FACTOR_NEGATIVE_SPEED_DEVIATION;
+        cost_vdeviation += vdev;
+    }
+    cost_vdeviation /= plan.size() - 1;
+    cost_parts.push_back(cost_vdeviation * FACTOR_VDEV);
+
+
+    ////// Total the cost.
     double cost = 0;
     for (double cp : cost_parts)
         cost += cp;

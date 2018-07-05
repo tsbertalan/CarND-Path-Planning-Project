@@ -21,6 +21,8 @@
 
 using namespace std;
 
+const double MIPH_TO_MPS = (5280 / 1.) * (1. / 3.2808) * (1 / 3600.);
+
 
 double measure_cost(Trajectory plan, vector<Neighbor> neighbors);
 // Check various things, like the speed of the proposed trajectory,
@@ -38,7 +40,7 @@ private:
 public:
     CoordinateTransformer transform;
     // m/s, NOT mph
-    double MAX_SPEED = 48 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.);
+    double MAX_SPEED = 48 * MIPH_TO_MPS;
     double MIN_SPEED = 5;
     int current_intended_lane;
     int plan_length = 1000;
