@@ -217,8 +217,9 @@ double Planner::randAB(double low, double high) {
 double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string label, bool heading) {
 
 
-    const double COLLISION_COST = 4;
-    const double ACCEL_COST = 1. / 28;
+    const double FACTOR_DISTANCE = 4;
+    const double FACTOR_ACCEL = 1. / 32;
+    const double CRITICAL_DISTANCE = 3;
 
     int print_width = 12;
     vector<const char *> cost_names = {"dist", "accel"};
@@ -232,7 +233,7 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
     }
 
     // Check whether the plan entails likely collisions.
-    double dist_cost = 0;
+    double cost_dist = 0;
     int ineighbor = -1;
 
     vector<double> X, Y, T;
@@ -255,20 +256,24 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
             double d = worldDist(ego, other);
             double dfactor;
             if (d > 0)
-                dfactor = 1. / d;
+                dfactor = 1 / (1 + exp(d - CRITICAL_DISTANCE));
             else
                 dfactor = 999999;
-            dist_cost += dfactor;
+            cost_dist += dfactor;
 
             Xn.push_back(other.x);
             Yn.push_back(other.y);
         }
-
     }
-    cost_parts.push_back(dist_cost * COLLISION_COST);
+
+    // Use mean.
+    cost_dist /= neighbors.size() * plan.size();
+
+    cost_parts.push_back(cost_dist * FACTOR_DISTANCE);
+
 
     // Add up the total acceleration.
-    double accel_tot = 0;
+    double cost_accel = 0;
     for (int i = 2; i < plan.size(); i++) {
         WorldPose pose0 = plan.poses[i - 2];
         WorldPose pose1 = plan.poses[i - 1];
@@ -282,9 +287,13 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
         double v1 = worldDist(pose1, pose2) / (t2 - t1);
 
         double accel = fabs((v1 - v0) / (t1 - t0));
-        accel_tot += accel;
+        cost_accel += accel;
     }
-    cost_parts.push_back(accel_tot * ACCEL_COST);
+
+    // Use mean.
+    cost_accel /= plan.size() - 2;
+
+    cost_parts.push_back(cost_accel * FACTOR_ACCEL);
 
     // Total the cost.
     double cost = 0;
