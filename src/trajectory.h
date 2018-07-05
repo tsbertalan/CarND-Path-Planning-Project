@@ -39,6 +39,7 @@ public:
             unsigned long plan_length,
             WorldPose current,
             double current_speed,
+            double text,
             double final_d = 2 + 4 * 2,
             double Ds = -1,
             double DT = .75

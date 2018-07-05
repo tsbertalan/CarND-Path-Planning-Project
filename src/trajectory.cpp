@@ -76,7 +76,7 @@ unsigned long Trajectory::size() {
 void Trajectory::extend(
         PolyTrajectory path,
         unsigned long max_length,
-        double DT,
+        double text,
         CoordinateTransformer &transform
 ) {
     double t0;
@@ -86,7 +86,7 @@ void Trajectory::extend(
         t0 = 0;
     }
     double t = t0;
-    while (t < t0 + DT) {
+    while (t < t0 + text) {
         t += dt;
 
         vector<double> xy = path(t - t0);
@@ -108,6 +108,7 @@ void Trajectory::JMT_extend(
         unsigned long plan_length,
         WorldPose current,
         double current_speed,
+        double text,
         double final_d,
         double Ds,
         double DT
@@ -179,5 +180,5 @@ void Trajectory::JMT_extend(
             DT
     );
 
-    extend(pt, plan_length, DT, transform);
+    extend(pt, plan_length, text, transform);
 }

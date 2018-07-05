@@ -19,6 +19,8 @@ Planner::make_plan(
 
     transform.set_reference(current);
 
+    const double TEXT = 1.1;
+
     // Get the curent lane index.
     FrenetPose fp = transform.toFrenet(current);
     int current_lane;
@@ -37,6 +39,7 @@ Planner::make_plan(
             plan_length,
             current,
             current_speed,
+            TEXT,
             current_lane * 4 + 2
     );
     plans.push_back(cruise);
@@ -63,6 +66,7 @@ Planner::make_plan(
             plan_length,
             current,
             current_speed,
+            TEXT,
             lane * 4 + 2
     );
     plans.push_back(rand_lane);
@@ -155,7 +159,6 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors) {
     double cost = 0;
 
     const double COLLISION_COST = 2;
-    const double DIST_THRESH = 5;
 
     // Check whether the plan entains likely collisions.
     for (auto neighbor : neighbors) {
@@ -165,9 +168,12 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors) {
             WorldPose ego = plan.poses[i];
             WorldPose other = neighbor.future_position(t - t0, transform);
             double d = distance(ego.x, ego.y, other.x, other.y);
-            if (d < DIST_THRESH) {
-                cost += COLLISION_COST;
-            }
+            double dfactor;
+            if (d > 0)
+                dfactor = 1. / d;
+            else
+                dfactor = 999999;
+            cost += COLLISION_COST * dfactor;
         }
     }
     return cost;
