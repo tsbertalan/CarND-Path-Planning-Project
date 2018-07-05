@@ -28,8 +28,23 @@ class Planner {
 private:
     plot map_plot;
     std::random_device rd;
+    int current_lane = 0;
+    int goal_lane = 0;
+    long last_lane_change_time_ms;
 
-    double randAB(double low = 0, double high = 1);
+    int get_lane(double d);
+
+    int get_lane(FrenetPose fp);
+
+    int get_lane(WorldPose wp);
+
+    long construction_time;
+
+    double uniform_random(double low = 0, double high = 1);
+
+    int uniform_random(int low = 0, int high_plus_one = 11);
+
+    long now();
 
 public:
     CoordinateTransformer transform;
@@ -37,7 +52,7 @@ public:
     double MAX_SPEED = 48 * MIPH_TO_MPS;
     double MIN_SPEED = 5;
     int PLAN_LENGTH = 1000;
-    double EXT_TIME = 2;
+    double EXT_TIME = 1.5;
     unsigned long NUM_REUSED = 8;
 
     Planner(CoordinateTransformer &transform);

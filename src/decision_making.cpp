@@ -7,6 +7,25 @@
 using namespace std;
 using namespace std::chrono;
 
+int Planner::get_lane(double d) {
+    if (d < 4)
+        return 0;
+    else if (d < 8)
+        return 1;
+    else
+        return 2;
+}
+
+int Planner::get_lane(FrenetPose fp) {
+    return get_lane(fp.d);
+}
+
+int Planner::get_lane(WorldPose wp) {
+    return get_lane(transform.to_frenet(wp));
+}
+
+
+
 
 Trajectory
 Planner::make_plan(
@@ -17,7 +36,7 @@ Planner::make_plan(
         const double dt,
         bool DEBUG
 ) {
-    auto start_planner_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    long start_planner_ms = now();
 
     // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
@@ -26,42 +45,42 @@ Planner::make_plan(
     transform.set_reference(current);
 
     // Get the curent lane index.
-    FrenetPose fp = transform.to_frenet(current);
-    int current_lane;
-    if (fp.d < 4)
-        current_lane = 0;
-    else if (fp.d < 8)
-        current_lane = 1;
-    else
-        current_lane = 2;
+    current_lane = get_lane(current);
+
+
+    const int NUM_PLANS = 20;
 
     // Generate multiple plans.
-    for (int otherlane = 0; otherlane < 3; otherlane++) {
-        for (double target_speed = MIN_SPEED; target_speed < MAX_SPEED; target_speed += 5) {
-            for (double DT = .5; DT < 1.75; DT += .25) {
-                Trajectory lane_switch = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
-                lane_switch.JMT_extend(
-                        transform,
-                        target_speed,
-                        PLAN_LENGTH,
-                        current,
-                        current_speed,
-                        EXT_TIME,
-                        otherlane * 4 + 2,
-                        -1,
-                        DT
-                );
-                ostringstream oss;
-                if (otherlane == current_lane)
-                    oss << "cruise";
-                else
-                    oss << "lane_switch" << current_lane << "to" << otherlane;
-                oss << " to " << target_speed << "[m/s]";
-                oss << " in " << DT << "[s]";
-                plan_names.push_back(oss.str());
-                plans.push_back(lane_switch);
-            }
-        }
+    for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
+
+        int otherlane = uniform_random(0, 3);
+        double target_speed = uniform_random(MIN_SPEED, MAX_SPEED);
+        double DT = uniform_random(.5, 1.75);
+        double d_offset = 0;
+        double DS = -1;
+//        double DS=uniform_random(8, 32);
+
+        Trajectory lane_switch = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
+        lane_switch.JMT_extend(
+                transform,
+                target_speed,
+                PLAN_LENGTH,
+                current,
+                current_speed,
+                EXT_TIME,
+                otherlane * 4 + 2 + d_offset,
+                DS,
+                DT
+        );
+        ostringstream oss;
+        if (otherlane == current_lane)
+            oss << "cruise";
+        else
+            oss << "lane_switch" << current_lane << "to" << otherlane;
+        oss << " to " << target_speed << "[m/s]";
+        oss << " in " << DT << "[s]";
+        plan_names.push_back(oss.str());
+        plans.push_back(lane_switch);
     }
 
     // Evaluate costs.
@@ -75,7 +94,14 @@ Planner::make_plan(
     // Choose a plan.
     int best_plan = argmin(costs);
     double lowest_cost = costs[best_plan];
+    Trajectory plan = plans[best_plan];
     cout << "Chose plan " << best_plan << " (" << plan_names[best_plan] << ")." << endl;
+
+    // Record the time that a lane switch was planned.
+    goal_lane = get_lane(plan.poses[plan.size() - 1]);
+    if (goal_lane != current_lane)
+        last_lane_change_time_ms = now();
+
 
     // Describe the neighbors.
     if (neighbors.size() > 0) {
@@ -87,19 +113,23 @@ Planner::make_plan(
         cout << "Closest neighbor is " << neighbors[imin].id << " at " << dists[imin] << "[m]." << endl;
     }
 
+    if (DEBUG) show_map(plans, neighbors);
 
-    Trajectory plan = plans[best_plan];
-
-    show_map(plans, neighbors);
-
-    auto end_planner_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    long end_planner_ms = now();
     cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl << endl;
 
 
     return plan;
 }
 
-Planner::Planner(CoordinateTransformer &transform) : transform(transform) {}
+long Planner::now() {
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - construction_time;
+}
+
+Planner::Planner(CoordinateTransformer &transform) : transform(transform) {
+    construction_time = 0;
+    construction_time = now();
+}
 
 void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
@@ -163,14 +193,19 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 }
 
 
-double Planner::randAB(double low, double high) {
+double Planner::uniform_random(double low, double high) {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(low, high);
     return dis(gen);
 }
 
-double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string label, bool heading) {
+int Planner::uniform_random(int low, int high_plus_one) {
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(low, high_plus_one - 1);
+    return dis(gen);
+}
 
+double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string label, bool heading) {
 
     const double FACTOR_DISTANCE = 8;
     const double FACTOR_ACCEL = 1. / 30;
@@ -179,9 +214,10 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
     const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
     const double FACTOR_NEGATIVE_SPEED_DEVIATION = .1;
     const double FACTOR_VDEV = .05;
+    const double FACTOR_LANE_SW = .1;
 
     int print_width = 12;
-    vector<const char *> cost_names = {"dist", "accel", "vdev"};
+    vector<const char *> cost_names = {"dist", "accel", "vdev", "sw"};//, "fastsw"};
     vector<double> cost_parts;
     if (label.length() > 0 && heading) {
         cout << "           ";
@@ -268,6 +304,24 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
     }
     cost_vdeviation /= plan.size() - 1;
     cost_parts.push_back(cost_vdeviation * FACTOR_VDEV);
+
+
+    //// Penalize any lane shifts.
+    int plan_goal_lane = get_lane(plan.poses[plan.size() - 1]);
+    bool plan_changes_goal_lane = goal_lane != plan_goal_lane;
+    if (plan_changes_goal_lane)
+        cost_parts.push_back(FACTOR_LANE_SW);
+    else
+        cost_parts.push_back(0);
+
+
+//    //// Penalise quickly repeated lane shifts.
+//    double cost_fastsw = 0;
+//    if(plan_changes_goal_lane) {
+//        double dt = now() - last_lane_change_time_ms;
+//        cout << dt << endl;
+//    }
+//    cost_parts.push_back(cost_fastsw);
 
 
     ////// Total the cost.
