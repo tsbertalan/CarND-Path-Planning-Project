@@ -17,13 +17,7 @@ public:
 
     Neighbor(int id, double x, double y, double vx, double vy);
 
-    WorldPose future_position(double dt, CoordinateTransformer transform) {
-        WorldPose next;
-        next.x = current.x + dt * vx;
-        next.y = current.y + dt * vy;
-        next.yaw = current.yaw;
-        return next;
-    }
+    WorldPose future_position(double dt, CoordinateTransformer &transform);
 };
 
 #endif //PATH_PLANNING_NEIGHBOR_H

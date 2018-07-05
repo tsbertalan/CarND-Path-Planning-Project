@@ -43,9 +43,9 @@ public:
 
     Planner(
             CoordinateTransformer &transform,
-            double target_max_speed = 42 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.), // m/s, NOT mph
+            double target_max_speed = 55 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.), // m/s, NOT mph
             int plan_length = 500,
-            int min_reused_points = 4
+            int min_reused_points = 16
     );
 
     Trajectory make_plan(
@@ -58,6 +58,8 @@ public:
     );
 
     void show_trajectory(Trajectory plan);
+
+    double get_cost(Trajectory plan, vector<Neighbor> neighbors);
 
 };
 

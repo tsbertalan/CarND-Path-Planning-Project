@@ -67,15 +67,27 @@ Planner::make_plan(
     );
     plans.push_back(rand_lane);
 
-    // Choose a plan.
-    // For now, choose randomly; usually just cruise.
-    Trajectory plan;
-    if (randAB() > .95) {
-        cout << "Changing lane from " << current_lane << " to " << lane << "." << endl;
-        plan = plans[1];
-    } else {
-        plan = plans[0];
+    // Evaluate costs.
+    vector<double> costs;
+    for (auto plan : plans) {
+        costs.push_back(get_cost(plan, neighbors));
     }
+
+    cout << "Cost of going straight is " << costs[0] << "." << endl;
+    cout << "Cost of switching to lane " << lane << " is " << costs[1] << "." << endl;
+
+    // Choose a plan.
+    int best_plan = -1;
+    double lowest_cost = 9999999999;
+    for (int i = 0; i < plans.size(); i++) {
+        double cost = costs[i];
+        if (cost < lowest_cost) {
+            best_plan = i;
+            lowest_cost = cost;
+        }
+    }
+
+    Trajectory plan = plans[best_plan];
 
     if (DEBUG) show_trajectory(plan);
 
@@ -137,4 +149,26 @@ double Planner::randAB(double low, double high) {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(low, high);
     return dis(gen);
+}
+
+double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors) {
+    double cost = 0;
+
+    const double COLLISION_COST = 2;
+    const double DIST_THRESH = 5;
+
+    // Check whether the plan entains likely collisions.
+    for (auto neighbor : neighbors) {
+        double t0 = plan.times[0];
+        for (int i = 0; i < plan.size(); i++) {
+            double t = plan.times[i];
+            WorldPose ego = plan.poses[i];
+            WorldPose other = neighbor.future_position(t - t0, transform);
+            double d = distance(ego.x, ego.y, other.x, other.y);
+            if (d < DIST_THRESH) {
+                cost += COLLISION_COST;
+            }
+        }
+    }
+    return cost;
 }

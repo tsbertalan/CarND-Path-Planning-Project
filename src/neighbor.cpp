@@ -12,3 +12,11 @@ Neighbor::Neighbor(int id, double x, double y, double vx, double vy)
     double yaw = atan2(vy, vx);
     current = {.x=x, .y=y, .yaw=yaw};
 }
+
+WorldPose Neighbor::future_position(double dt, CoordinateTransformer &transform) {
+    WorldPose next;
+    next.x = current.x + dt * vx;
+    next.y = current.y + dt * vy;
+    next.yaw = current.yaw;
+    return next;
+}
