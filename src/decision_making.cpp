@@ -19,7 +19,7 @@ Planner::make_plan(
 
     transform.set_reference(current);
 
-    const double TEXT = 1.1;
+    const double TEXT = .8;
 
     // Get the curent lane index.
     FrenetPose fp = transform.toFrenet(current);
@@ -44,41 +44,28 @@ Planner::make_plan(
     );
     plans.push_back(cruise);
 
-    // Switch to a random lane.
-    int lane;
-    switch (current_lane) {
-        case 0 :
-            lane = 1;
-            break;
-        case 1:
-            if (randAB() > .75)
-                lane = 2;
-            else
-                lane = 0;
-            break;
-        case 2:
-            lane = 1;
+    // Switch to a lane.
+    for (int otherlane = 0; otherlane < 3; otherlane++) {
+        if (otherlane != current_lane) {
+            Trajectory lane_switch = leftover.subtrajectory(min_reused_points + 1, 0, dt);
+            lane_switch.JMT_extend(
+                    transform,
+                    target_max_speed,
+                    plan_length,
+                    current,
+                    current_speed,
+                    TEXT,
+                    otherlane * 4 + 2
+            );
+            plans.push_back(lane_switch);
+        }
     }
-    Trajectory rand_lane = leftover.subtrajectory(min_reused_points + 1, 0, dt);
-    rand_lane.JMT_extend(
-            transform,
-            target_max_speed,
-            plan_length,
-            current,
-            current_speed,
-            TEXT,
-            lane * 4 + 2
-    );
-    plans.push_back(rand_lane);
 
     // Evaluate costs.
     vector<double> costs;
     for (auto plan : plans) {
         costs.push_back(get_cost(plan, neighbors));
     }
-
-    cout << "Cost of going straight is " << costs[0] << "." << endl;
-    cout << "Cost of switching to lane " << lane << " is " << costs[1] << "." << endl;
 
     // Choose a plan.
     int best_plan = -1;
