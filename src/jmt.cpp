@@ -8,14 +8,6 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 
-double PolyPath::operator()(double x) {
-    double y = 0;
-    for (int p = 0; p < coefficients.size(); p++) {
-        y += pow(x, p) * coefficients[p];
-    }
-    return y;
-}
-
 std::vector<double> PolyPath::operator()(std::vector<double> X) {
     std::vector<double> Y;
     for (double x : X) {
@@ -24,8 +16,25 @@ std::vector<double> PolyPath::operator()(std::vector<double> X) {
     return Y;
 }
 
-PolyPath::PolyPath(VectorXd coefficients) {
-    this->coefficients = coefficients;
+double PolyPath::operator()(double x, bool threshold) {
+    if (threshold && x >= upper_bound) {
+        return upper_bound_slope * (x - upper_bound) + upper_bound_value;
+    } else {
+        double y = 0;
+        for (int p = 0; p < coefficients.size(); p++) {
+            y += pow(x, p) * coefficients[p];
+        }
+        return y;
+    }
+}
+
+PolyPath::PolyPath(VectorXd coefficients, double upper_bound)
+        : coefficients(coefficients), upper_bound(upper_bound) {
+    double ymax = (*this)(upper_bound, false);
+    double dt = .01;
+    double ymaxm1 = (*this)(upper_bound - dt, false);
+    upper_bound_slope = (ymax - ymaxm1) / dt;
+    upper_bound_value = ymax;
 }
 
 
@@ -84,7 +93,7 @@ PolyPath JMT_single_channel(double yi, double ydi, double yddi, double yf, doubl
     VectorXd coefficients(6);
     coefficients << a0, a1, a2, a3, a4, a5;
 
-    return PolyPath(coefficients);
+    return PolyPath(coefficients, T);
 }
 
 

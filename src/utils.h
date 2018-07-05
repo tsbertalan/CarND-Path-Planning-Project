@@ -7,19 +7,19 @@
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
-void printVec(std::vector<double> v, std::string name) {
-    std::cout << name << " = [";
-    if (v.size() > 0) {
-        if (v.size() > 1) {
-            for (int i = 0; i < v.size() - 1; i++) {
-                std::cout << v[i] << ", ";
-            }
-        }
-        std::cout << v[v.size() - 1];
-    }
-    std::cout << "]" << std::endl;
-}
+void printVec(std::vector<double> v, std::string name, std::string sep = " = ");
+
+
+long argmin(std::vector<float> v);
+
+float min(std::vector<float> v);
+
+long argmax(std::vector<float> v);
+
+float max(std::vector<float> v);
+
 
 
 #endif //PATH_PLANNING_UTILS_H

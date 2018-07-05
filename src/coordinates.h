@@ -101,4 +101,6 @@ public:
 
 };
 
+double worldDist(WorldPose a, WorldPose b);
+
 #endif //PATH_PLANNING_COORDINATES_H

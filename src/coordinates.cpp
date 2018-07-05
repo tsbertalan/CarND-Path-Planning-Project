@@ -335,3 +335,8 @@ FrenetPose CoordinateTransformer::toFrenet(WorldPose from) {
     fp.yaw = sdy[2];
     return fp;
 }
+
+
+double worldDist(WorldPose a, WorldPose b) {
+    return distance(a.x, a.y, b.x, b.y);
+}

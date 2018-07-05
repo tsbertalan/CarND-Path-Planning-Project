@@ -127,7 +127,6 @@ void Trajectory::JMT_extend(
 
     double t0 = dt * size();
 
-
     if (size() > 0) {
         root = transform.toCar(poses[size() - 1]);
         if (size() > 1) {

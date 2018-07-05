@@ -7,7 +7,7 @@ add_definitions(-std=c++11 -g)
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/jmt.cpp src/jmt.h src/utils.h src/decision_making.h src/decision_making.cpp src/coordinates.h src/coordinates.cpp src/neighbor.cpp src/neighbor.h src/trajectory.cpp src/trajectory.h)
+set(sources src/jmt.cpp src/jmt.h src/utils.h src/decision_making.h src/decision_making.cpp src/coordinates.h src/coordinates.cpp src/neighbor.cpp src/neighbor.h src/trajectory.cpp src/trajectory.h src/graph.h src/utils.cpp)
 
 find_package(PythonLibs REQUIRED)
 

@@ -29,7 +29,7 @@ double measure_cost(Trajectory plan, vector<Neighbor> neighbors);
 
 class Planner {
 private:
-    plot p1, p2, p3, p4;
+    plot p1, p2, p3, p4, pmap;
     std::random_device rd;
 
     double randAB(double low = 0, double high = 1);
@@ -43,8 +43,8 @@ public:
 
     Planner(
             CoordinateTransformer &transform,
-            double target_max_speed = 95 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.), // m/s, NOT mph
-            int plan_length = 500,
+            double target_max_speed = 50 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.), // m/s, NOT mph
+            int plan_length = 1000,
             int min_reused_points = 16
     );
 
@@ -59,7 +59,9 @@ public:
 
     void show_trajectory(Trajectory plan);
 
-    double get_cost(Trajectory plan, vector<Neighbor> neighbors);
+    void show_map(vector<Trajectory> plans, vector<Neighbor> neighbors);
+
+    double get_cost(Trajectory plan, vector<Neighbor> neighbors, string label = "", bool heading = false);
 
 };
 

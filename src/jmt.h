@@ -14,11 +14,17 @@
 class PolyPath {
 private:
     Eigen::VectorXd coefficients;
+    double upper_bound_slope;
+    double upper_bound_value;
+
+    double call(double x);
 
 public:
-    PolyPath(Eigen::VectorXd coefficients);
+    double upper_bound;
 
-    double operator()(double x);
+    PolyPath(Eigen::VectorXd coefficients, double upper_bound);
+
+    double operator()(double x, bool threshold = true);
 
     std::vector<double> operator()(std::vector<double> X);
 };
