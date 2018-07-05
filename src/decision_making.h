@@ -17,6 +17,7 @@
 #include "coordinates.h"
 #include "trajectory.h"
 #include "neighbor.h"
+#include <chrono>
 
 using namespace std;
 
@@ -36,17 +37,14 @@ private:
 
 public:
     CoordinateTransformer transform;
-    double target_max_speed;
+    // m/s, NOT mph
+    double MAX_SPEED = 48 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.);
+    double MIN_SPEED = 5;
     int current_intended_lane;
-    int plan_length;
-    unsigned long min_reused_points;
+    int plan_length = 1000;
+    unsigned long min_reused_points = 8;
 
-    Planner(
-            CoordinateTransformer &transform,
-            double target_max_speed = 50 * (5280 / 1.) * (1. / 3.2808) * (1 / 3600.), // m/s, NOT mph
-            int plan_length = 1000,
-            int min_reused_points = 16
-    );
+    Planner(CoordinateTransformer &transform);
 
     Trajectory make_plan(
             WorldPose current,

@@ -5,6 +5,7 @@
 #include "utils.h"
 
 using namespace std;
+using namespace std::chrono;
 
 
 Trajectory
@@ -16,6 +17,8 @@ Planner::make_plan(
         const double dt,
         bool DEBUG
 ) {
+    auto start_planner_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+
     // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
     vector<string> plan_names;
@@ -35,27 +38,13 @@ Planner::make_plan(
     else
         current_lane = 2;
 
-    // Consider cruising on the current path.
-    Trajectory cruise = leftover.subtrajectory(min_reused_points + 1, 0, dt);
-    cruise.JMT_extend(
-            transform,
-            target_max_speed,
-            plan_length,
-            current,
-            current_speed,
-            TEXT,
-            current_lane * 4 + 2
-    );
-    plan_names.push_back("cruise");
-    plans.push_back(cruise);
-
-    // Switch to a lane.
+    // Generate multiple plans.
     for (int otherlane = 0; otherlane < 3; otherlane++) {
-        if (otherlane != current_lane) {
+        for (double target_speed = MIN_SPEED; target_speed < MAX_SPEED; target_speed += 5) {
             Trajectory lane_switch = leftover.subtrajectory(min_reused_points + 1, 0, dt);
             lane_switch.JMT_extend(
                     transform,
-                    target_max_speed,
+                    target_speed,
                     plan_length,
                     current,
                     current_speed,
@@ -63,7 +52,11 @@ Planner::make_plan(
                     otherlane * 4 + 2
             );
             ostringstream oss;
-            oss << "lane_switch" << current_lane << "to" << otherlane;
+            if (otherlane == current_lane)
+                oss << "cruise";
+            else
+                oss << "lane_switch" << current_lane << "to" << otherlane;
+            oss << " to " << target_speed << "[m/s]";
             plan_names.push_back(oss.str());
             plans.push_back(lane_switch);
         }
@@ -98,7 +91,7 @@ Planner::make_plan(
         int imin = min_element(dists.begin(), dists.end()) - dists.begin();
         cout << "Closest neighbor is " << neighbors[imin].id << " at " << dists[imin] << "[m]." << endl;
     }
-    cout << " ==== " << endl;
+
 
     Trajectory plan = plans[best_plan];
 
@@ -106,19 +99,14 @@ Planner::make_plan(
 
     if (DEBUG) show_trajectory(plan);
 
+    auto end_planner_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl << endl;
+
+
     return plan;
 }
 
-Planner::Planner(
-        CoordinateTransformer &transform,
-        double target_max_speed,
-        int plan_length,
-        int min_reused_points
-)
-        : transform(transform), target_max_speed(target_max_speed), plan_length(plan_length),
-          min_reused_points(min_reused_points) {
-    ;
-}
+Planner::Planner(CoordinateTransformer &transform) : transform(transform) {}
 
 void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
@@ -172,7 +160,6 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
         Y.push_back(y);
         C.push_back(c);
     }
-    cout << endl;
 
     pmap.plot_data(
             X, Y,
@@ -239,7 +226,7 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
     vector<const char *> cost_names = {"dist", "accel"};
     vector<double> cost_parts;
     if (label.length() > 0 && heading) {
-        cout << "    ";
+        cout << "           ";
         for (const char *n : cost_names) {
             printf("%*s", print_width, n);
         }
@@ -316,7 +303,7 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
 
     // Print the parts.
     if (label.length() > 0) {
-        cout << "sum(";
+        cout << "cost = sum(";
         const char *fmt = "%*.3f";
         for (double cp : cost_parts) {
             printf(fmt, print_width, cp);
