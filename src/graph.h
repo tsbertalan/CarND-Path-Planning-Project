@@ -28,7 +28,7 @@ public:
         }
     }
 
-    void plot_data(vector<float> x, const char *style = "points", const char *title = "Data") {
+    void plot_data(vector<double> x, const char *style = "points", const char *title = "Data") {
         if (!enabled)
             return;
         fprintf(gp, "set title '%s' \n", title);
@@ -40,7 +40,7 @@ public:
         fflush(gp);
     }
 
-    void plot_data(vector<float> x, vector<float> y, const char *style = "points", const char *title = "Data") {
+    void plot_data(vector<double> x, vector<double> y, const char *style = "points", const char *title = "Data") {
         if (!enabled)
             return;
         fprintf(gp, "set title '%s' \n", title);
@@ -52,8 +52,12 @@ public:
         fflush(gp);
     }
 
-    void plot_data(vector<vector<float>> X, vector<vector<float>> Y, vector<string> styles = {"points"},
-                   const char *title = "Data", bool fixed_y = true) {
+    void plot_data(vector<vector<double>> X, vector<vector<double>> Y,
+                   const char *xlabel, const char *ylabel,
+                   vector<string> styles = {"points"},
+                   const char *title = "Data", const char *cblabel = "", vector<double> c = {},
+                   vector<double> ylims = {-12, 12}, vector<double> xlims = {0, 160}
+    ) {
         if (!enabled)
             return;
 
@@ -61,7 +65,7 @@ public:
         const vector<string> colors = {"black", "blue", "red", "green", "magenta", "cyan", "yellow"};
 
         // Use a smoothly sliding box.
-        vector<float> lows_x, lows_y, highs_x, highs_y;
+        vector<double> lows_x, lows_y, highs_x, highs_y;
         for (int i = 0; i < X.size(); i++) {
             auto x = X[i];
             auto y = Y[i];
@@ -70,18 +74,22 @@ public:
             highs_x.push_back(max(x));
             highs_y.push_back(max(y));
         }
-        fprintf(gp, "set xrange [%f:%f] \n", min(lows_x), max(highs_x));
-        if (fixed_y) {
-//            float extreme = max(fabs(min(lows_y)), fabs(max(highs_y)));
-            float extreme = 12;
-            fprintf(gp, "set yrange [%f:%f] \n", -extreme, extreme);//low_y + box_width_y);
-        } else {
+        if (xlims.size() == 2)
+            fprintf(gp, "set xrange [%f:%f] \n", xlims[0], xlims[1]);
+        else
+            fprintf(gp, "set xrange [%f:%f] \n", min(lows_x), max(highs_x));
+        if (ylims.size() == 2)
+            fprintf(gp, "set yrange [%f:%f] \n", ylims[0], ylims[1]);
+        else
             fprintf(gp, "set yrange [%f:%f] \n", min(lows_y), max(highs_y));
-        }
 
 
-        fprintf(gp, "set palette rgb 23,28,3 \n");
+        fprintf(gp, "set palette rgb 34,35,36 \n");
         fprintf(gp, "set key off \n");
+        fprintf(gp, "set xlabel '%s' \n", xlabel);
+        fprintf(gp, "set ylabel '%s' \n", ylabel);
+        if (strlen(cblabel) > 0)
+            fprintf(gp, "set cblabel '%s' \n", cblabel);
 
         fprintf(gp, "plot");
         for (int i = 0; i < X.size(); i++) {
@@ -92,10 +100,11 @@ public:
         fprintf(gp, "\n");
 
         for (int i = 0; i < X.size(); i++) {
-            vector<float> x = X[i];
-            vector<float> y = Y[i];
+            vector<double> x = X[i];
+            vector<double> y = Y[i];
             for (int k = 0; k < y.size(); k++) {
-                fprintf(gp, "%f %f %d \n", x[k], y[k], k);
+                double cv = c[min(k, (int) c.size() - 1)];
+                fprintf(gp, "%f %f %f \n", x[k], y[k], cv);
             }
             fprintf(gp, "e\n");
         }
@@ -113,7 +122,7 @@ public:
 int main(int argc,char **argv) {
  plot p;
  for(int a=0;a<100;a++) {
- vector<float> x,y;
+ vector<double> x,y;
  for(int k=a;k<a+200;k++) {
    x.push_back(k);
    y.push_back(k*k);

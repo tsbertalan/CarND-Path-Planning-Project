@@ -12,13 +12,13 @@
 void printVec(std::vector<double> v, std::string name, std::string sep = " = ");
 
 
-long argmin(std::vector<float> v);
+long argmin(std::vector<double> v);
 
-float min(std::vector<float> v);
+double min(std::vector<double> v);
 
-long argmax(std::vector<float> v);
+long argmax(std::vector<double> v);
 
-float max(std::vector<float> v);
+double max(std::vector<double> v);
 
 
 

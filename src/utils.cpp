@@ -3,19 +3,19 @@
 //
 #include "utils.h"
 
-long argmin(std::vector<float> v) {
+long argmin(std::vector<double> v) {
     return min_element(v.begin(), v.end()) - v.begin();
 }
 
-float min(std::vector<float> v) {
+double min(std::vector<double> v) {
     return v[argmin(v)];
 }
 
-long argmax(std::vector<float> v) {
+long argmax(std::vector<double> v) {
     return max_element(v.begin(), v.end()) - v.begin();
 }
 
-float max(std::vector<float> v) {
+double max(std::vector<double> v) {
     return v[argmax(v)];
 }
 

@@ -126,11 +126,11 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
     transform.set_reference(ego_now);
 
     int iplan = -1;
-    vector<vector<float>> X, Y, T;
+    vector<vector<double>> X, Y, T;
     vector<string> styles;
     for (auto plan: plans) {
         iplan++;
-        vector<float> x, y, t;
+        vector<double> x, y, t;
         for (WorldPose pose : plan.poses) {
             CarPose cp = transform.toCar(pose);
             x.push_back(cp.x);
@@ -147,15 +147,8 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
     double s_now = transform.toFrenet(ego_now).s;
 
-    cout << s_now;
     for (auto n: neighbors) {
-        // Don't show neighbors that are far behind us.
-        double n_s_now = transform.toFrenet(n.current).s;
-        cout << "," << n_s_now;
-        if (n_s_now < s_now - 10)
-            continue;
-
-        vector<float> x, y;
+        vector<double> x, y;
         for (int i = 0; i < plans[0].size(); i++) {
             double t0 = plans[0].times[0];
             double t = plans[0].times[i];
@@ -170,12 +163,13 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
     }
     cout << endl;
 
-    pmap.plot_data(X, Y, styles, "plans and neighbor projections");
+    pmap.plot_data(X, Y, "x [m] (car)", "y [m] (car)", styles, "plans and neighbor projections", "t [s]",
+                   plans[0].times);
 
 }
 
 void Planner::show_trajectory(Trajectory plan) {
-    vector<float> s, d;
+    vector<double> s, d;
     for (WorldPose pose : plan.poses) {
         FrenetPose fp = transform.toFrenet(pose);
         s.push_back(fp.s);
@@ -184,14 +178,14 @@ void Planner::show_trajectory(Trajectory plan) {
     cout << endl;
     p1.plot_data(s, d, "points", "d vs s [m]");
 
-    vector<float> X, Y;
+    vector<double> X, Y;
     for (WorldPose pose : plan.poses) {
         X.push_back(pose.x);
         Y.push_back(pose.y);
     }
     p2.plot_data(X, Y, "points", "y vs x (world) [m]");
 
-    vector<float> T, V;
+    vector<double> T, V;
     for (int i = 1; i < plan.size(); i++) {
         T.push_back(plan.times[i]);
         double dx = plan.poses[i].x - plan.poses[i - 1].x;
@@ -203,7 +197,7 @@ void Planner::show_trajectory(Trajectory plan) {
     }
     p3.plot_data(T, V, "points", "speed [mph] vs t [s]");
 
-    vector<float> Xc, Yc;
+    vector<double> Xc, Yc;
     for (WorldPose pose : plan.poses) {
         CarPose cp = transform.toCar(pose);
         Xc.push_back(cp.x);
