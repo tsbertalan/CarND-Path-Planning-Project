@@ -18,7 +18,7 @@ Planner::make_plan(
 ) {
     // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
-    vector<string> planNames;
+    vector<string> plan_names;
 
     transform.set_reference(current);
 
@@ -46,7 +46,7 @@ Planner::make_plan(
             TEXT,
             current_lane * 4 + 2
     );
-    planNames.push_back("cruise");
+    plan_names.push_back("cruise");
     plans.push_back(cruise);
 
     // Switch to a lane.
@@ -64,7 +64,7 @@ Planner::make_plan(
             );
             ostringstream oss;
             oss << "lane_switch" << current_lane << "to" << otherlane;
-            planNames.push_back(oss.str());
+            plan_names.push_back(oss.str());
             plans.push_back(lane_switch);
         }
     }
@@ -73,8 +73,8 @@ Planner::make_plan(
     vector<double> costs;
     for (int i = 0; i < plans.size(); i++) {
         Trajectory plan = plans[i];
-        string planName = planNames[i];
-        costs.push_back(get_cost(plan, neighbors, planNames[i], i == 0));
+        string planName = plan_names[i];
+        costs.push_back(get_cost(plan, neighbors, plan_names[i], i == 0));
     }
 
     // Choose a plan.
@@ -87,6 +87,7 @@ Planner::make_plan(
             lowest_cost = cost;
         }
     }
+    cout << "Chose plan " << best_plan << " (" << plan_names[best_plan] << ")." << endl;
 
     // Describe the neighbors.
     if (neighbors.size() > 0) {
@@ -125,12 +126,14 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
     transform.set_reference(ego_now);
 
+    const double DIST_VIZ_CAP = 30.;
+
     int iplan = -1;
-    vector<vector<double>> X, Y, T;
+    vector<vector<double>> X, Y, T, C;
     vector<string> styles;
     for (auto plan: plans) {
         iplan++;
-        vector<double> x, y, t;
+        vector<double> x, y, t, c;
         for (WorldPose pose : plan.poses) {
             CarPose cp = transform.toCar(pose);
             x.push_back(cp.x);
@@ -138,17 +141,19 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
         }
         for (double tv : plan.times) {
             t.push_back(tv);
+            c.push_back(0);
         }
         X.push_back(x);
         Y.push_back(y);
         T.push_back(t);
+        C.push_back(c);
         styles.push_back("lines");
     }
 
     double s_now = transform.toFrenet(ego_now).s;
 
     for (auto n: neighbors) {
-        vector<double> x, y;
+        vector<double> x, y, c;
         for (int i = 0; i < plans[0].size(); i++) {
             double t0 = plans[0].times[0];
             double t = plans[0].times[i];
@@ -156,15 +161,24 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
             CarPose cp = transform.toCar(other);
             x.push_back(cp.x);
             y.push_back(cp.y);
+            double min_dist = 9999;
+            for (auto p : plans) {
+                min_dist = min(min_dist, worldDist(other, p.poses[i % p.size()]));
+            }
+            c.push_back(min(min_dist, DIST_VIZ_CAP));
         }
         styles.push_back("lines");
         X.push_back(x);
         Y.push_back(y);
+        C.push_back(c);
     }
     cout << endl;
 
-    pmap.plot_data(X, Y, "x [m] (car)", "y [m] (car)", styles, "plans and neighbor projections", "t [s]",
-                   plans[0].times);
+    pmap.plot_data(
+            X, Y,
+            "x [m] (car)", "y [m] (car)", styles, "plans and neighbor projections", "capped dist to nearest plan",
+            C
+    );
 
 }
 
@@ -217,9 +231,9 @@ double Planner::randAB(double low, double high) {
 double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string label, bool heading) {
 
 
-    const double FACTOR_DISTANCE = 4;
-    const double FACTOR_ACCEL = 1. / 32;
-    const double CRITICAL_DISTANCE = 3;
+    const double FACTOR_DISTANCE = 8;
+    const double FACTOR_ACCEL = 1. / 30;
+    const double CRITICAL_DISTANCE = 4.5;
 
     int print_width = 12;
     vector<const char *> cost_names = {"dist", "accel"};

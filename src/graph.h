@@ -55,7 +55,7 @@ public:
     void plot_data(vector<vector<double>> X, vector<vector<double>> Y,
                    const char *xlabel, const char *ylabel,
                    vector<string> styles = {"points"},
-                   const char *title = "Data", const char *cblabel = "", vector<double> c = {},
+                   const char *title = "Data", const char *cblabel = "", vector<vector<double>> C = {{}},
                    vector<double> ylims = {-12, 12}, vector<double> xlims = {0, 160}
     ) {
         if (!enabled)
@@ -102,6 +102,7 @@ public:
         for (int i = 0; i < X.size(); i++) {
             vector<double> x = X[i];
             vector<double> y = Y[i];
+            vector<double> c = C[i % C.size()];
             for (int k = 0; k < y.size(); k++) {
                 double cv = c[min(k, (int) c.size() - 1)];
                 fprintf(gp, "%f %f %f \n", x[k], y[k], cv);
