@@ -25,11 +25,8 @@ Planner::make_plan(
 
     transform.set_reference(current);
 
-    const double TEXT = 2;
-    const double DT = 0.75;
-
     // Get the curent lane index.
-    FrenetPose fp = transform.toFrenet(current);
+    FrenetPose fp = transform.to_frenet(current);
     int current_lane;
     if (fp.d < 4)
         current_lane = 0;
@@ -42,14 +39,14 @@ Planner::make_plan(
     for (int otherlane = 0; otherlane < 3; otherlane++) {
         for (double target_speed = MIN_SPEED; target_speed < MAX_SPEED; target_speed += 5) {
             for (double DT = .5; DT < 1.75; DT += .25) {
-                Trajectory lane_switch = leftover.subtrajectory(min_reused_points + 1, 0, dt);
+                Trajectory lane_switch = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
                 lane_switch.JMT_extend(
                         transform,
                         target_speed,
-                        plan_length,
+                        PLAN_LENGTH,
                         current,
                         current_speed,
-                        TEXT,
+                        EXT_TIME,
                         otherlane * 4 + 2,
                         -1,
                         DT
@@ -84,7 +81,7 @@ Planner::make_plan(
     if (neighbors.size() > 0) {
         vector<double> dists;
         for (auto n : neighbors) {
-            dists.push_back(worldDist(n.current, current));
+            dists.push_back(get_world_dist(n.current, current));
         }
         int imin = min_element(dists.begin(), dists.end()) - dists.begin();
         cout << "Closest neighbor is " << neighbors[imin].id << " at " << dists[imin] << "[m]." << endl;
@@ -94,8 +91,6 @@ Planner::make_plan(
     Trajectory plan = plans[best_plan];
 
     show_map(plans, neighbors);
-
-    if (DEBUG) show_trajectory(plan);
 
     auto end_planner_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl << endl;
@@ -121,7 +116,7 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
         iplan++;
         vector<double> x, y, t, c;
         for (WorldPose pose : plan.poses) {
-            CarPose cp = transform.toCar(pose);
+            CarPose cp = transform.to_car(pose);
             x.push_back(cp.x);
             y.push_back(cp.y);
         }
@@ -136,7 +131,7 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
         styles.push_back("lines");
     }
 
-    double s_now = transform.toFrenet(ego_now).s;
+    double s_now = transform.to_frenet(ego_now).s;
 
     for (auto n: neighbors) {
         vector<double> x, y, c;
@@ -144,12 +139,12 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
             double t0 = plans[0].times[0];
             double t = plans[0].times[i];
             WorldPose other = n.future_position(t - t0, transform);
-            CarPose cp = transform.toCar(other);
+            CarPose cp = transform.to_car(other);
             x.push_back(cp.x);
             y.push_back(cp.y);
             double min_dist = 9999;
             for (auto p : plans) {
-                min_dist = min(min_dist, worldDist(other, p.poses[i % p.size()]));
+                min_dist = min(min_dist, get_world_dist(other, p.poses[i % p.size()]));
             }
             c.push_back(min(min_dist, DIST_VIZ_CAP));
         }
@@ -159,7 +154,7 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
         C.push_back(c);
     }
 
-    pmap.plot_data(
+    map_plot.plot_data(
             X, Y,
             "x [m] (car)", "y [m] (car)", styles, "plans and neighbor projections", "capped dist to nearest plan",
             C
@@ -167,45 +162,6 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
 }
 
-void Planner::show_trajectory(Trajectory plan) {
-    vector<double> s, d;
-    for (WorldPose pose : plan.poses) {
-        FrenetPose fp = transform.toFrenet(pose);
-        s.push_back(fp.s);
-        d.push_back(fp.d);
-    }
-    cout << endl;
-    p1.plot_data(s, d, "points", "d vs s [m]");
-
-    vector<double> X, Y;
-    for (WorldPose pose : plan.poses) {
-        X.push_back(pose.x);
-        Y.push_back(pose.y);
-    }
-    p2.plot_data(X, Y, "points", "y vs x (world) [m]");
-
-    vector<double> T, V;
-    for (int i = 1; i < plan.size(); i++) {
-        T.push_back(plan.times[i]);
-        double dx = plan.poses[i].x - plan.poses[i - 1].x;
-        double dy = plan.poses[i].y - plan.poses[i - 1].y;
-        double dt = plan.times[i] - plan.times[i - 1];
-        double mps = sqrt(pow(dx, 2) + pow(dy, 2)) / dt;
-        double mph = mps * (1. / 5280.) * (3.2808 / 1.) * (3600. / 1);
-        V.push_back(mph);
-    }
-    p3.plot_data(T, V, "points", "speed [mph] vs t [s]");
-
-    vector<double> Xc, Yc;
-    for (WorldPose pose : plan.poses) {
-        CarPose cp = transform.toCar(pose);
-        Xc.push_back(cp.x);
-        Yc.push_back(cp.y);
-    }
-    p4.plot_data(Xc, Yc, "points", "y vs x (car) [m]");
-
-    cout << "Plots updated." << endl;
-}
 
 double Planner::randAB(double low, double high) {
     std::mt19937 gen(rd());
@@ -256,7 +212,7 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
             double t = plan.times[i];
             WorldPose ego = plan.poses[i];
             WorldPose other = neighbor.future_position(t - t0, transform);
-            double d = worldDist(ego, other);
+            double d = get_world_dist(ego, other);
             double dfactor;
             if (d > 0)
                 dfactor = 1 / (1 + exp(d - CRITICAL_DISTANCE));
@@ -283,8 +239,8 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
         double t1 = plan.times[i - 1];
         double t2 = plan.times[i - 0];
 
-        double v0 = worldDist(pose0, pose1) / (t1 - t0);
-        double v1 = worldDist(pose1, pose2) / (t2 - t1);
+        double v0 = get_world_dist(pose0, pose1) / (t1 - t0);
+        double v1 = get_world_dist(pose1, pose2) / (t2 - t1);
 
         double accel = fabs((v1 - v0) / (t1 - t0));
         cost_accel += accel;
@@ -302,7 +258,7 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
         double dxdt = (p2.x - p1.x) / dt;
         double dydt = (p2.y - p1.y) / dt;
         double speed = sqrt(dxdt * dxdt + dydt * dydt);
-        //double speed = worldDist(p1, p2) / fabs(dt);
+        //double speed = get_world_dist(p1, p2) / fabs(dt);
         double vdev = speed - GOAL_SPEED;
         if (vdev > 0)
             vdev *= FACTOR_POSITIVE_SPEED_DEVIATION;

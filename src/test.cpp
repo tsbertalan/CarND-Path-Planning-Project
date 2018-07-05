@@ -23,8 +23,8 @@ int main() {
     transform.set_reference(car_reference);
 
     WorldPose test_point = {.x=car_reference.x, .y=car_reference.y + .1, .yaw=M_PI / 4};
-    CarPose cp = transform.toCar(test_point);
-    WorldPose test_recovery = transform.toWorld(cp);
+    CarPose cp = transform.to_car(test_point);
+    WorldPose test_recovery = transform.to_world(cp);
 
     assert(test_point.x == test_recovery.x);
     assert(test_point.y == test_recovery.y);
@@ -41,7 +41,7 @@ int main() {
         xpoints.push_back(pose.x);
         ypoints.push_back(pose.y);
 
-        FrenetPose fp = transform.toFrenet(pose);
+        FrenetPose fp = transform.to_frenet(pose);
         spoints.push_back(fp.s);
         dpoints.push_back(fp.d);
 
@@ -54,8 +54,8 @@ int main() {
 
     cout << "xyt_ret=[";
     for (WorldPose pose : newPlan.poses) {
-        WorldPose retransformed = transform.toWorld(
-                transform.toFrenet(pose)
+        WorldPose retransformed = transform.to_world(
+                transform.to_frenet(pose)
         );
         cout << "(" << retransformed.x << "," << retransformed.y << "," << retransformed.yaw << "),";
     }

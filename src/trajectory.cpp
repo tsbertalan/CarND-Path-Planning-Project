@@ -91,7 +91,7 @@ void Trajectory::extend(
 
         vector<double> xy = path(t - t0);
         CarPose pose = {.x=xy[0], .y=xy[1], .yaw=0};
-        WorldPose wp = transform.toWorld(pose);
+        WorldPose wp = transform.to_world(pose);
         poses.push_back(wp);
         times.push_back(t);
 
@@ -118,7 +118,7 @@ void Trajectory::JMT_extend(
     else
         transform.set_reference(current);
 
-    CarPose root = transform.toCar(current);
+    CarPose root = transform.to_car(current);
 
     double root_sspeed = current_speed;
     double root_saccel = 0;
@@ -128,14 +128,14 @@ void Trajectory::JMT_extend(
     double t0 = dt * size();
 
     if (size() > 0) {
-        root = transform.toCar(poses[size() - 1]);
+        root = transform.to_car(poses[size() - 1]);
         if (size() > 1) {
-            CarPose rm1 = transform.toCar(poses[size() - 2]);
+            CarPose rm1 = transform.to_car(poses[size() - 2]);
             root_sspeed = (root.x - rm1.x) / dt;
             root_dspeed = (root.y - rm1.y) / dt;
 
             if (size() > 2) {
-                CarPose rm2 = transform.toCar(poses[size() - 3]);
+                CarPose rm2 = transform.to_car(poses[size() - 3]);
 
                 double sspeedm1 = (rm1.x - rm2.x) / dt;
                 double dspeedm1 = (rm1.y - rm2.y) / dt;
@@ -150,9 +150,9 @@ void Trajectory::JMT_extend(
         Ds = (root_sspeed + final_speed) / 2 * DT;
     }
 
-    FrenetPose frenetRoot = transform.toFrenet(root);
+    FrenetPose frenetRoot = transform.to_frenet(root);
     FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=final_d, .yaw=0};
-    CarPose leaf = transform.toCar(frenetLeaf);
+    CarPose leaf = transform.to_car(frenetLeaf);
 
     double xci, xcdi, xcddi, xcf, xcdf, xcddf, yci, ycdi, ycddi, ycf, ycdf, ycddf;
     xci = root.x;

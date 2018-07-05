@@ -14,14 +14,14 @@
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
 std::vector<double>
-getFrenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
+get_frenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
 
 std::vector<double>
-getFrenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y,
-          const std::vector<double> &maps_dx, const std::vector<double> &maps_dy);
+get_frenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y,
+           const std::vector<double> &maps_dx, const std::vector<double> &maps_dy);
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
-std::vector<double> getXY(
+std::vector<double> get_xy(
         double s, double d,
         const std::vector<double> &maps_s,
         const std::vector<double> &maps_x,
@@ -29,7 +29,7 @@ std::vector<double> getXY(
 );
 
 // Alternate
-std::vector<double> getXY(
+std::vector<double> get_world(
         double s, double d, double yaw,
         const std::vector<double> &maps_s,
         const std::vector<double> &maps_x,
@@ -37,10 +37,10 @@ std::vector<double> getXY(
 );
 
 
-int ClosestWaypoint(double x, double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
+int closest_waypoint(double x, double y, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
 
 int
-NextWaypoint(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
+next_waypoint(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
 
 
 double distance(double x1, double y1, double x2, double y2);
@@ -89,18 +89,20 @@ public:
 
     void set_reference(WorldPose car);
 
-    WorldPose toWorld(CarPose from);
+    WorldPose to_world(CarPose from);
 
-    WorldPose toWorld(FrenetPose from);
+    WorldPose to_world(FrenetPose from);
 
-    CarPose toCar(WorldPose from);
+    CarPose to_car(WorldPose from);
 
-    CarPose toCar(FrenetPose from);
-    FrenetPose toFrenet(CarPose from);
-    FrenetPose toFrenet(WorldPose from);
+    CarPose to_car(FrenetPose from);
+
+    FrenetPose to_frenet(CarPose from);
+
+    FrenetPose to_frenet(WorldPose from);
 
 };
 
-double worldDist(WorldPose a, WorldPose b);
+double get_world_dist(WorldPose a, WorldPose b);
 
 #endif //PATH_PLANNING_COORDINATES_H

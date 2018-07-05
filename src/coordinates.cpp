@@ -5,11 +5,11 @@
 
 
 std::vector<double>
-getFrenet(
+get_frenet(
         double x, double y, double theta,
         const std::vector<double> &maps_x, const std::vector<double> &maps_y
 ) {
-    int next_wp = NextWaypoint(x, y, theta, maps_x, maps_y);
+    int next_wp = next_waypoint(x, y, theta, maps_x, maps_y);
 
     int prev_wp;
     prev_wp = next_wp - 1;
@@ -53,16 +53,16 @@ getFrenet(
 }
 
 
-// Alternative getFrenet that also gives yaw.
+// Alternative get_frenet that also gives yaw.
 std::vector<double>
-getFrenet(
+get_frenet(
         double x, double y, double theta,
         const std::vector<double> &maps_x,
         const std::vector<double> &maps_y,
         const std::vector<double> &maps_dx,
         const std::vector<double> &maps_dy
 ) {
-    int next_wp = NextWaypoint(x, y, theta, maps_x, maps_y);
+    int next_wp = next_waypoint(x, y, theta, maps_x, maps_y);
 
     int prev_wp;
     prev_wp = next_wp - 1;
@@ -109,7 +109,7 @@ getFrenet(
 }
 
 
-std::vector<double> getXY(
+std::vector<double> get_xy(
         double s, double d,
         const std::vector<double> &maps_s,
         const std::vector<double> &maps_x,
@@ -140,7 +140,7 @@ std::vector<double> getXY(
 }
 
 
-std::vector<double> getXY(
+std::vector<double> get_world(
         double s, double d, double yaw,
         const std::vector<double> &maps_s,
         const std::vector<double> &maps_x,
@@ -171,7 +171,7 @@ std::vector<double> getXY(
 }
 
 
-int ClosestWaypoint(
+int closest_waypoint(
         double x, double y,
         const std::vector<double> &maps_x, const std::vector<double> &maps_y
 ) {
@@ -196,9 +196,9 @@ int ClosestWaypoint(
 
 
 int
-NextWaypoint(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y) {
+next_waypoint(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y) {
 
-    int closestWaypoint = ClosestWaypoint(x, y, maps_x, maps_y);
+    int closestWaypoint = closest_waypoint(x, y, maps_x, maps_y);
 
     double map_x = maps_x[closestWaypoint];
     double map_y = maps_y[closestWaypoint];
@@ -267,7 +267,7 @@ void CoordinateTransformer::set_reference(WorldPose car) {
 }
 
 
-WorldPose CoordinateTransformer::toWorld(CarPose from) {
+WorldPose CoordinateTransformer::to_world(CarPose from) {
     double x = from.x * cos(car_reference.yaw) - from.y * sin(car_reference.yaw);
     double y = from.x * sin(car_reference.yaw) + from.y * cos(car_reference.yaw);
 
@@ -284,9 +284,9 @@ WorldPose CoordinateTransformer::toWorld(CarPose from) {
 }
 
 
-WorldPose CoordinateTransformer::toWorld(FrenetPose from) {
+WorldPose CoordinateTransformer::to_world(FrenetPose from) {
 
-    std::vector<double> xyt = getXY(from.s, from.d, from.yaw, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    std::vector<double> xyt = get_world(from.s, from.d, from.yaw, map_waypoints_s, map_waypoints_x, map_waypoints_y);
     WorldPose wp;
     wp.x = xyt[0];
     wp.y = xyt[1];
@@ -296,7 +296,7 @@ WorldPose CoordinateTransformer::toWorld(FrenetPose from) {
 }
 
 
-CarPose CoordinateTransformer::toCar(WorldPose from) {
+CarPose CoordinateTransformer::to_car(WorldPose from) {
     double x = from.x;
     double y = from.y;
     double yaw = from.yaw;
@@ -313,18 +313,18 @@ CarPose CoordinateTransformer::toCar(WorldPose from) {
 }
 
 
-CarPose CoordinateTransformer::toCar(FrenetPose from) {
-    return toCar(toWorld(from));
+CarPose CoordinateTransformer::to_car(FrenetPose from) {
+    return to_car(to_world(from));
 }
 
 
-FrenetPose CoordinateTransformer::toFrenet(CarPose from) {
-    return toFrenet(toWorld(from));
+FrenetPose CoordinateTransformer::to_frenet(CarPose from) {
+    return to_frenet(to_world(from));
 }
 
 
-FrenetPose CoordinateTransformer::toFrenet(WorldPose from) {
-    std::vector<double> sdy = getFrenet(
+FrenetPose CoordinateTransformer::to_frenet(WorldPose from) {
+    std::vector<double> sdy = get_frenet(
             from.x, from.y, from.yaw,
             map_waypoints_x, map_waypoints_y,
             map_waypoints_dx, map_waypoints_dy
@@ -337,6 +337,6 @@ FrenetPose CoordinateTransformer::toFrenet(WorldPose from) {
 }
 
 
-double worldDist(WorldPose a, WorldPose b) {
+double get_world_dist(WorldPose a, WorldPose b) {
     return distance(a.x, a.y, b.x, b.y);
 }

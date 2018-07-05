@@ -9,7 +9,7 @@
 #include <iostream>
 #include <algorithm>
 
-void printVec(std::vector<double> v, std::string name, std::string sep = " = ");
+void print_vec(std::vector<double> v, std::string name, std::string sep = " = ");
 
 
 long argmin(std::vector<double> v);

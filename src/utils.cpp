@@ -19,7 +19,7 @@ double max(std::vector<double> v) {
     return v[argmax(v)];
 }
 
-void printVec(std::vector<double> v, std::string name, std::string sep) {
+void print_vec(std::vector<double> v, std::string name, std::string sep) {
     std::cout << name << sep << "[";
     if (v.size() > 0) {
         if (v.size() > 1) {

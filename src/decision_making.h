@@ -24,15 +24,9 @@ using namespace std;
 const double MIPH_TO_MPS = (5280 / 1.) * (1. / 3.2808) * (1 / 3600.);
 
 
-double measure_cost(Trajectory plan, vector<Neighbor> neighbors);
-// Check various things, like the speed of the proposed trajectory,
-// whether any collisions are predicted,
-// what the acceleration and jerk are,
-// and whether we drive off the road.
-
 class Planner {
 private:
-    plot p1, p2, p3, p4, pmap;
+    plot map_plot;
     std::random_device rd;
 
     double randAB(double low = 0, double high = 1);
@@ -42,9 +36,9 @@ public:
     // m/s, NOT mph
     double MAX_SPEED = 48 * MIPH_TO_MPS;
     double MIN_SPEED = 5;
-    int current_intended_lane;
-    int plan_length = 1000;
-    unsigned long min_reused_points = 8;
+    int PLAN_LENGTH = 1000;
+    double EXT_TIME = 2;
+    unsigned long NUM_REUSED = 8;
 
     Planner(CoordinateTransformer &transform);
 
@@ -56,8 +50,6 @@ public:
             const double dt = .02,
             bool DEBUG = false
     );
-
-    void show_trajectory(Trajectory plan);
 
     void show_map(vector<Trajectory> plans, vector<Neighbor> neighbors);
 
