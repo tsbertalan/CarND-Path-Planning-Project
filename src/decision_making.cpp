@@ -41,24 +41,29 @@ Planner::make_plan(
     // Generate multiple plans.
     for (int otherlane = 0; otherlane < 3; otherlane++) {
         for (double target_speed = MIN_SPEED; target_speed < MAX_SPEED; target_speed += 5) {
-            Trajectory lane_switch = leftover.subtrajectory(min_reused_points + 1, 0, dt);
-            lane_switch.JMT_extend(
-                    transform,
-                    target_speed,
-                    plan_length,
-                    current,
-                    current_speed,
-                    TEXT,
-                    otherlane * 4 + 2
-            );
-            ostringstream oss;
-            if (otherlane == current_lane)
-                oss << "cruise";
-            else
-                oss << "lane_switch" << current_lane << "to" << otherlane;
-            oss << " to " << target_speed << "[m/s]";
-            plan_names.push_back(oss.str());
-            plans.push_back(lane_switch);
+            for (double DT = .5; DT < 1.75; DT += .25) {
+                Trajectory lane_switch = leftover.subtrajectory(min_reused_points + 1, 0, dt);
+                lane_switch.JMT_extend(
+                        transform,
+                        target_speed,
+                        plan_length,
+                        current,
+                        current_speed,
+                        TEXT,
+                        otherlane * 4 + 2,
+                        -1,
+                        DT
+                );
+                ostringstream oss;
+                if (otherlane == current_lane)
+                    oss << "cruise";
+                else
+                    oss << "lane_switch" << current_lane << "to" << otherlane;
+                oss << " to " << target_speed << "[m/s]";
+                oss << " in " << DT << "[s]";
+                plan_names.push_back(oss.str());
+                plans.push_back(lane_switch);
+            }
         }
     }
 
@@ -71,15 +76,8 @@ Planner::make_plan(
     }
 
     // Choose a plan.
-    int best_plan = -1;
-    double lowest_cost = 9999999999;
-    for (int i = 0; i < plans.size(); i++) {
-        double cost = costs[i];
-        if (cost < lowest_cost) {
-            best_plan = i;
-            lowest_cost = cost;
-        }
-    }
+    int best_plan = argmin(costs);
+    double lowest_cost = costs[best_plan];
     cout << "Chose plan " << best_plan << " (" << plan_names[best_plan] << ")." << endl;
 
     // Describe the neighbors.
@@ -221,10 +219,10 @@ double Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string lab
     const double FACTOR_DISTANCE = 8;
     const double FACTOR_ACCEL = 1. / 30;
     const double CRITICAL_DISTANCE = 4.5;
-    const double GOAL_SPEED = 45 * MIPH_TO_MPS;
+    const double GOAL_SPEED = 47 * MIPH_TO_MPS;
     const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
     const double FACTOR_NEGATIVE_SPEED_DEVIATION = .1;
-    const double FACTOR_VDEV = .1;
+    const double FACTOR_VDEV = .05;
 
     int print_width = 12;
     vector<const char *> cost_names = {"dist", "accel", "vdev"};
