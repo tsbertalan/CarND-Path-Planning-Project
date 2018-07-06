@@ -23,6 +23,13 @@ using namespace std;
 
 const double MIPH_TO_MPS = (5280 / 1.) * (1. / 3.2808) * (1 / 3600.);
 
+struct CostDecision {
+    double cost;
+    const char *reason;
+    vector<double> cost_parts;
+    vector<const char *> cost_part_names;
+};
+
 
 class Planner {
 private:
@@ -38,6 +45,8 @@ private:
 
     int get_lane(WorldPose wp);
 
+    int get_lane(Trajectory plan, bool final = true);
+
     long construction_time;
 
     double uniform_random(double low = 0, double high = 1);
@@ -49,10 +58,10 @@ private:
 public:
     CoordinateTransformer transform;
     // m/s, NOT mph
-    double MAX_SPEED = 48 * MIPH_TO_MPS;
-    double MIN_SPEED = 5;
+    double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
+    double MIN_SPEED_CONSIDERED = 10 * MIPH_TO_MPS;
     int PLAN_LENGTH = 1000;
-    double EXT_TIME = 1.5;
+    double EXT_TIME = 1.6;
     unsigned long NUM_REUSED = 8;
 
     Planner(CoordinateTransformer &transform);
@@ -68,7 +77,7 @@ public:
 
     void show_map(vector<Trajectory> plans, vector<Neighbor> neighbors);
 
-    double get_cost(Trajectory plan, vector<Neighbor> neighbors, string label = "", bool heading = false);
+    CostDecision get_cost(Trajectory plan, vector<Neighbor> neighbors, string label = "", bool heading = false);
 
 };
 

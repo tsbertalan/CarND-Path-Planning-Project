@@ -18,8 +18,13 @@ double min(std::vector<double> v);
 
 long argmax(std::vector<double> v);
 
+long argmax(std::vector<int> v);
+
 double max(std::vector<double> v);
 
+std::vector<unsigned long> argsort(std::vector<double> v);
+
+std::vector<unsigned long> argsort(std::vector<int> v);
 
 
 #endif //PATH_PLANNING_UTILS_H

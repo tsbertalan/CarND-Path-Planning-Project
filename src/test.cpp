@@ -34,7 +34,7 @@ int main() {
     Trajectory leftover;
     Trajectory newPlan = planner.make_plan(test_point, 32.0, leftover, {});
 
-    vector<float> xpoints, ypoints, spoints, dpoints, times;
+    vector<double> xpoints, ypoints, spoints, dpoints, times;
 
     cout << "sdt=[";
     for (WorldPose pose : newPlan.poses) {

@@ -15,6 +15,10 @@ long argmax(std::vector<double> v) {
     return max_element(v.begin(), v.end()) - v.begin();
 }
 
+long argmax(std::vector<int> v) {
+    return max_element(v.begin(), v.end()) - v.begin();
+}
+
 double max(std::vector<double> v) {
     return v[argmax(v)];
 }
@@ -31,3 +35,12 @@ void print_vec(std::vector<double> v, std::string name, std::string sep) {
     }
     std::cout << "]" << std::endl;
 }
+
+std::vector<unsigned long> argsort(std::vector<int> v) {
+    std::vector<unsigned long> indices(v.size());
+    unsigned long i = 0;
+    std::iota(indices.begin(), indices.end(), i++);
+    sort(indices.begin(), indices.end(), [&](unsigned long i, unsigned long j) { return v[i] < v[j]; });
+    return indices;
+}
+
