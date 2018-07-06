@@ -3,7 +3,6 @@
 //
 
 #include "trajectory.h"
-#include <assert.h>
 
 using namespace std;
 
@@ -74,7 +73,7 @@ unsigned long Trajectory::size() {
 }
 
 void Trajectory::extend(
-        PolyTrajectory path,
+        PolyTrajectory sdpath,
         unsigned long max_length,
         double text,
         CoordinateTransformer &transform
@@ -89,8 +88,8 @@ void Trajectory::extend(
     while (t < t0 + text) {
         t += dt;
 
-        vector<double> xy = path(t - t0);
-        CarPose pose = {.x=xy[0], .y=xy[1], .yaw=0};
+        vector<double> sd = sdpath(t - t0);
+        FrenetPose pose = {.s=sd[0], .d=sd[1], .yaw=0};
         WorldPose wp = transform.to_world(pose);
         poses.push_back(wp);
         times.push_back(t);
@@ -118,7 +117,7 @@ void Trajectory::JMT_extend(
     else
         transform.set_reference(current);
 
-    CarPose initial_pose = transform.to_car(current);
+    FrenetPose initial_pose = transform.to_frenet(current);
 
     double vs0 = current_speed;
     double as0 = 0;
@@ -128,17 +127,17 @@ void Trajectory::JMT_extend(
     double t0 = dt * size();
 
     if (size() > 0) {
-        initial_pose = transform.to_car(ultimate());
+        initial_pose = transform.to_frenet(ultimate());
         if (size() > 1) {
-            CarPose rm1 = transform.to_car(penultimate());
-            vs0 = (initial_pose.x - rm1.x) / dt;
-            vd0 = (initial_pose.y - rm1.y) / dt;
+            FrenetPose rm1 = transform.to_frenet(penultimate());
+            vs0 = (initial_pose.s - rm1.s) / dt;
+            vd0 = (initial_pose.d - rm1.d) / dt;
 
             if (size() > 2) {
-                CarPose rm2 = transform.to_car(antepenultimate());
+                FrenetPose rm2 = transform.to_frenet(antepenultimate());
 
-                double vsm1 = (rm1.x - rm2.x) / dt;
-                double vdm1 = (rm1.y - rm2.y) / dt;
+                double vsm1 = (rm1.s - rm2.s) / dt;
+                double vdm1 = (rm1.d - rm2.d) / dt;
 
                 as0 = (vs0 - vsm1) / dt;
                 ad0 = (vd0 - vdm1) / dt;
@@ -150,32 +149,30 @@ void Trajectory::JMT_extend(
         Ds = (vs0 + final_speed) / 2 * DT;
     }
 
-    FrenetPose frenetRoot = transform.to_frenet(initial_pose);
-    FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=final_d, .yaw=0};
-    CarPose leaf = transform.to_car(frenetLeaf);
+    FrenetPose leaf = {.s=initial_pose.s + Ds, .d=final_d, .yaw=0};
 
-    double xci, xcdi, xcddi, xcf, xcdf, xcddf, yci, ycdi, ycddi, ycf, ycdf, ycddf;
-    xci = initial_pose.x;
-    xcdi = vs0;
-    xcddi = as0;
+    double si, sdi, sddi, sf, sdf, sddf, di, ddi, dddi, df, ddf, dddf;
+    si = initial_pose.s;
+    sdi = vs0;
+    sddi = as0;
 
-    xcf = leaf.x;
-    xcdf = final_speed;
-    xcddf = 0;
+    sf = leaf.s;
+    sdf = final_speed;
+    sddf = 0;
 
-    yci = initial_pose.y;
-    ycdi = vd0;
-    ycddi = ad0;
+    di = initial_pose.d;
+    ddi = vd0;
+    dddi = ad0;
 
-    ycf = leaf.y;
-    ycdf = 0;
-    ycddf = 0;
+    df = leaf.d;
+    ddf = 0;
+    dddf = 0;
 
     PolyTrajectory pt = JMT(
-            xci, xcdi, xcddi,
-            xcf, xcdf, xcddf,
-            yci, ycdi, ycddi,
-            ycf, ycdf, ycddf,
+            si, sdi, sddi,
+            sf, sdf, sddf,
+            di, ddi, dddi,
+            df, ddf, dddf,
             DT
     );
 
