@@ -105,7 +105,7 @@ void Trajectory::extend(
 void Trajectory::JMT_extend(
         CoordinateTransformer transform,
         double final_speed,
-        unsigned long plan_length,
+        unsigned int plan_length,
         WorldPose current,
         double current_speed,
         double text,
@@ -114,58 +114,58 @@ void Trajectory::JMT_extend(
         double DT
 ) {
     if (size() > 1)
-        transform.set_reference(poses[size() - 1]);
+        transform.set_reference(ultimate());
     else
         transform.set_reference(current);
 
-    CarPose root = transform.to_car(current);
+    CarPose initial_pose = transform.to_car(current);
 
-    double root_sspeed = current_speed;
-    double root_saccel = 0;
-    double root_dspeed = 0;
-    double root_daccel = 0;
+    double vs0 = current_speed;
+    double as0 = 0;
+    double vd0 = 0;
+    double ad0 = 0;
 
     double t0 = dt * size();
 
     if (size() > 0) {
-        root = transform.to_car(poses[size() - 1]);
+        initial_pose = transform.to_car(ultimate());
         if (size() > 1) {
-            CarPose rm1 = transform.to_car(poses[size() - 2]);
-            root_sspeed = (root.x - rm1.x) / dt;
-            root_dspeed = (root.y - rm1.y) / dt;
+            CarPose rm1 = transform.to_car(penultimate());
+            vs0 = (initial_pose.x - rm1.x) / dt;
+            vd0 = (initial_pose.y - rm1.y) / dt;
 
             if (size() > 2) {
-                CarPose rm2 = transform.to_car(poses[size() - 3]);
+                CarPose rm2 = transform.to_car(antepenultimate());
 
-                double sspeedm1 = (rm1.x - rm2.x) / dt;
-                double dspeedm1 = (rm1.y - rm2.y) / dt;
+                double vsm1 = (rm1.x - rm2.x) / dt;
+                double vdm1 = (rm1.y - rm2.y) / dt;
 
-                root_saccel = (root_sspeed - sspeedm1) / dt;
-                root_daccel = (root_dspeed - dspeedm1) / dt;
+                as0 = (vs0 - vsm1) / dt;
+                ad0 = (vd0 - vdm1) / dt;
             }
         }
     }
 
     if (Ds == -1) {
-        Ds = (root_sspeed + final_speed) / 2 * DT;
+        Ds = (vs0 + final_speed) / 2 * DT;
     }
 
-    FrenetPose frenetRoot = transform.to_frenet(root);
+    FrenetPose frenetRoot = transform.to_frenet(initial_pose);
     FrenetPose frenetLeaf = {.s=frenetRoot.s + Ds, .d=final_d, .yaw=0};
     CarPose leaf = transform.to_car(frenetLeaf);
 
     double xci, xcdi, xcddi, xcf, xcdf, xcddf, yci, ycdi, ycddi, ycf, ycdf, ycddf;
-    xci = root.x;
-    xcdi = root_sspeed;
-    xcddi = root_saccel;
+    xci = initial_pose.x;
+    xcdi = vs0;
+    xcddi = as0;
 
     xcf = leaf.x;
     xcdf = final_speed;
     xcddf = 0;
 
-    yci = root.y;
-    ycdi = root_dspeed;
-    ycddi = root_daccel;
+    yci = initial_pose.y;
+    ycdi = vd0;
+    ycddi = ad0;
 
     ycf = leaf.y;
     ycdf = 0;
@@ -180,4 +180,32 @@ void Trajectory::JMT_extend(
     );
 
     extend(pt, plan_length, text, transform);
+}
+
+WorldPose Trajectory::initial() {
+    return poses[0];
+}
+
+WorldPose Trajectory::ultimate() {
+    return poses[size() - 1];
+}
+
+WorldPose Trajectory::penultimate() {
+    return poses[size() - 2];
+}
+
+WorldPose Trajectory::antepenultimate() {
+    return poses[size() - 3];
+}
+
+WorldPose Trajectory::preantepenultimate() {
+    return poses[size() - 4];
+}
+
+WorldPose Trajectory::suprapreantepenultimate() {
+    return poses[size() - 5];
+}
+
+bool Trajectory::empty() {
+    return poses.empty();
 }

@@ -29,6 +29,8 @@ public:
 
     unsigned long size();
 
+    bool empty();
+
     std::vector<std::vector<double>> decompose();
 
     Trajectory subtrajectory(int end, int start = 0, double dt = .02);
@@ -36,7 +38,7 @@ public:
     void JMT_extend(
             CoordinateTransformer transform,
             double final_speed,
-            unsigned long plan_length,
+            unsigned int plan_length,
             WorldPose current,
             double current_speed,
             double text,
@@ -44,6 +46,18 @@ public:
             double Ds = -1,
             double DT = .75
     );
+
+    WorldPose initial();
+
+    WorldPose ultimate();
+
+    WorldPose penultimate();
+
+    WorldPose antepenultimate();
+
+    WorldPose preantepenultimate();
+
+    WorldPose suprapreantepenultimate();
 
 };
 

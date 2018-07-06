@@ -20,3 +20,7 @@ WorldPose Neighbor::future_position(double dt, CoordinateTransformer &transform)
     next.yaw = current.yaw;
     return next;
 }
+
+double Neighbor::speed() {
+    return sqrt(vx * vx + vy * vy);
+}

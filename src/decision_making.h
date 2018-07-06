@@ -64,11 +64,6 @@ private:
 public:
     CoordinateTransformer transform;
     // m/s, NOT mph
-    double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
-    double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
-    int PLAN_LENGTH = 1000;
-    double EXT_TIME = 1;
-    unsigned long NUM_REUSED = 8;
 
     Planner(CoordinateTransformer &transform);
 
@@ -77,8 +72,7 @@ public:
             double current_speed,
             Trajectory leftover,
             vector<Neighbor> neighbors,
-            const double dt = .02,
-            bool DEBUG = false
+            const double dt = .02
     );
 
     void show_map(vector<Trajectory> plans, vector<Neighbor> neighbors);
@@ -90,6 +84,10 @@ public:
     int get_lane(Trajectory plan, bool final = true);
 
     string describe_plan(Trajectory &plan, double current_speed, double target_speed, double DT);
+
+    vector<const char *> evaluate_reasons(vector<CostDecision> &decisions);
+
+    string declare_reasons(vector<CostDecision> &decisions, CostDecision &decision);
 
 };
 

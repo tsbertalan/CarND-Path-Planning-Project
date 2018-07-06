@@ -27,9 +27,9 @@ int Planner::get_lane(WorldPose wp) {
 
 int Planner::get_lane(Trajectory plan, bool final) {
     if (final)
-        return get_lane(plan.poses[plan.size() - 1]);
+        return get_lane(plan.ultimate());
     else
-        return get_lane(plan.poses[0]);
+        return get_lane(plan.initial());
 }
 
 
@@ -40,44 +40,127 @@ Planner::make_plan(
         double current_speed,
         Trajectory leftover,
         vector<Neighbor> neighbors,
-        const double dt,
-        bool DEBUG
+        const double dt
 ) {
+
+    // Prepare things.
     long start_planner_ms = now();
 
     current_speed *= MIPH_TO_MPS;
+    transform.set_reference(current);
+    current_lane = get_lane(current);
 
-    // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
     vector<string> plan_names;
 
-    transform.set_reference(current);
-
-    // Get the curent lane index.
-    current_lane = get_lane(current);
-
-
-    const int NUM_PLANS = 128;
+    int NUM_PLANS = 64;
     const bool SHOW_ALL_PLANS = true;
+    const bool DEBUG = false;
+    double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
+    double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
+    unsigned int PLAN_LENGTH = 1000;
+    double EXT_TIME = -1;
+    unsigned int NUM_REUSED = 16;
+    const double TAILGATE_BUFFER = 8;
+
+
+    // Work with neighbors.
+    // Describe the neighbors.
+    vector<double> xcdists;
+    vector<Neighbor> lane_neighbors;
+    for (auto n : neighbors) {
+        if (get_lane(n.current) == current_lane) {
+            CarPose cp = transform.to_car(n.current);
+            lane_neighbors.push_back(n);
+            xcdists.push_back(fabs(cp.x));
+        }
+    }
+    if (!lane_neighbors.empty()) {
+
+        long iminc = min_element(xcdists.begin(), xcdists.end()) - xcdists.begin();
+        Neighbor closest = lane_neighbors[iminc];
+        CarPose closest_cp = transform.to_car(closest.current);
+        cout << "Closest-in-xc neighbor in same lane is #" << closest.id << " at " << xcdists[iminc] << "[m]";
+        cout << " (lane=" << get_lane(closest.current) << ", xc=" << closest_cp.x << ", yc=" << closest_cp.y << ")."
+             << endl;
+
+        if (
+                xcdists[iminc] < 40
+                and xcdists[iminc] > TAILGATE_BUFFER
+                and closest_cp.x > 0
+                and get_lane(closest.current) == current_lane
+                ) {
+            // Generate a following trajectory.
+            double target_speed = closest.speed();
+            int plan_target = get_lane(closest.current);
+
+            Trajectory follow = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
+
+            double lead_distance = max(
+                    closest_cp.x
+                    - transform.to_car(leftover.ultimate()).x, 1.
+            );
+            if (lead_distance > TAILGATE_BUFFER) {
+                lead_distance -= TAILGATE_BUFFER;
+            }
+            double DT = 2 * lead_distance / (current_speed + target_speed);
+            double tmax;
+            if (EXT_TIME != -1) {
+                tmax = EXT_TIME;
+            } else {
+                tmax = DT;
+                if (!follow.empty())
+                    tmax += follow.times[follow.size() - 1];
+            }
+            follow.JMT_extend(
+                    transform,
+                    target_speed,
+                    PLAN_LENGTH,
+                    current,
+                    current_speed,
+                    tmax,
+                    plan_target * 4 + 2,
+                    -1,
+                    DT
+            );
+            ostringstream oss;
+            oss << "follow_" << closest.id;
+            plan_names.push_back(oss.str());
+            plans.push_back(follow);
+            cout << "Added " << oss.str() << endl;
+        } else {
+            if (NUM_PLANS == 0)
+                NUM_PLANS = 32;
+        }
+
+    }
+
 
     // Generate multiple plans.
     for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
 
         int plan_target = uniform_random(0, 3);
         double target_speed = uniform_random(MIN_SPEED_CONSIDERED, MAX_SPEED_CONSIDERED);
-        double DT = uniform_random(.5, 1.75);
+        double DT = uniform_random(.5, 1.5);
         double d_offset = 0;
         double DS = -1;
-//        double DS=uniform_random(8, 32);
 
         Trajectory plan = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
+        double tmax;
+        if (EXT_TIME != -1) {
+            tmax = EXT_TIME;
+        } else {
+            tmax = DT;
+            if (!plan.empty())
+                tmax += plan.times[plan.size() - 1];
+        }
         plan.JMT_extend(
                 transform,
                 target_speed,
                 PLAN_LENGTH,
                 current,
                 current_speed,
-                EXT_TIME,
+                tmax,
                 plan_target * 4 + 2 + d_offset,
                 DS,
                 DT
@@ -102,62 +185,19 @@ Planner::make_plan(
         CostDecision decision = get_cost(plan, neighbors, label, i == 0);
         costs.push_back(decision.cost);
         decisions.push_back(decision);
-
     }
-
-
-    // What was the most common reason for a bad cost?
-    map<const char *, int> histogram;
-    for (auto d: decisions) {
-        if (histogram.find(d.reason) == histogram.end())
-            histogram[d.reason] = 0;
-        histogram[d.reason] += 1;
-    }
-    vector<const char *> reasons;
-    vector<int> counts;
-    for (auto const &x : histogram) {
-        reasons.push_back(x.first);
-        counts.push_back(x.second);
-    }
-    vector<unsigned long> reason_prevalences = argsort(counts);
-    reverse(reason_prevalences.begin(), reason_prevalences.end());
-    const char *primary_reason = reasons[reason_prevalences[0]];
-    const char *secondary_reason = primary_reason;
-    if (counts.size() > 1)
-        secondary_reason = reasons[reason_prevalences[1]];
 
 
     // Choose a plan.
     int best_plan = argmin(costs);
     double lowest_cost = costs[best_plan];
     Trajectory plan = plans[best_plan];
-    cout << "Chose plan " << best_plan << endl << "   " << plan_names[best_plan] << endl;
+    cout << "Chose plan " << best_plan << endl << "    " << plan_names[best_plan] << endl;
     CostDecision best_dec = decisions[best_plan];
 
 
     // Say why we chose.
-    double pri_reason_val = best_dec.cost_parts[
-            find(best_dec.cost_part_names.begin(), best_dec.cost_part_names.end(), primary_reason)
-            - best_dec.cost_part_names.begin()
-    ];
-    double sec_reason_val = best_dec.cost_parts[
-            find(best_dec.cost_part_names.begin(), best_dec.cost_part_names.end(), secondary_reason)
-            - best_dec.cost_part_names.begin()
-    ];
-
-    if (best_dec.reason == primary_reason) {
-        if (best_dec.reason == secondary_reason) {
-            cout << " despite " << primary_reason << "=" << pri_reason_val;
-        } else {
-            cout << " because of " << secondary_reason << "=" << sec_reason_val;
-            cout << " and despite " << primary_reason << "=" << pri_reason_val;
-        }
-
-    } else {
-        cout << " because of " << primary_reason << "=" << pri_reason_val;
-    }
-
-    cout << "." << endl;
+    cout << "    " << declare_reasons(decisions, best_dec) << "." << endl;
 
 
     // Record the time that a lane switch was planned.
@@ -166,15 +206,6 @@ Planner::make_plan(
         cout << " ------------------------ LANE CHANGE ------------------------ " << endl;
     }
 
-    // Describe the neighbors.
-    if (neighbors.size() > 0) {
-        vector<double> dists;
-        for (auto n : neighbors) {
-            dists.push_back(get_world_dist(n.current, current));
-        }
-        int imin = min_element(dists.begin(), dists.end()) - dists.begin();
-        cout << "Closest neighbor is " << neighbors[imin].id << " at " << dists[imin] << "[m]." << endl;
-    }
 
     if (DEBUG) show_map(plans, neighbors);
 
@@ -208,7 +239,7 @@ Planner::Planner(CoordinateTransformer &transform) : transform(transform) {
 
 void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
-    WorldPose ego_now = plans[0].poses[0];
+    WorldPose ego_now = plans[0].initial();
 
     transform.set_reference(ego_now);
 
@@ -293,6 +324,9 @@ bool Planner::cross_lane_plan(Trajectory plan) {
 
 string Planner::describe_plan(Trajectory &plan, double current_speed, double target_speed, double DT) {
 
+//    int plan_target;
+//    if(plan.empty())
+//        plan_target = get_lane()
     int plan_target = get_lane(plan);
 
     ostringstream oss;
@@ -309,5 +343,51 @@ string Planner::describe_plan(Trajectory &plan, double current_speed, double tar
     }
     oss << " to " << target_speed << " from " << current_speed << " [m/s]";
     oss << " in " << DT << "[s]";
+    return oss.str();
+}
+
+string Planner::declare_reasons(vector<CostDecision> &decisions, CostDecision &best_dec) {
+    map<const char *, int> histogram;
+    for (auto d: decisions) {
+        if (histogram.find(d.reason) == histogram.end())
+            histogram[d.reason] = 0;
+        histogram[d.reason] += 1;
+    }
+    vector<const char *> reasons;
+    vector<int> counts;
+    for (auto const &x : histogram) {
+        reasons.push_back(x.first);
+        counts.push_back(x.second);
+    }
+    vector<unsigned long> reason_prevalences = argsort(counts);
+    reverse(reason_prevalences.begin(), reason_prevalences.end());
+    const char *primary_reason = reasons[reason_prevalences[0]];
+    const char *secondary_reason = primary_reason;
+    if (counts.size() > 1)
+        secondary_reason = reasons[reason_prevalences[1]];
+
+
+    double pri_reason_val = best_dec.cost_parts[
+            find(best_dec.cost_part_names.begin(), best_dec.cost_part_names.end(), primary_reason)
+            - best_dec.cost_part_names.begin()
+    ];
+    double sec_reason_val = best_dec.cost_parts[
+            find(best_dec.cost_part_names.begin(), best_dec.cost_part_names.end(), secondary_reason)
+            - best_dec.cost_part_names.begin()
+    ];
+
+    ostringstream oss;
+
+    if (best_dec.reason == primary_reason) {
+        if (best_dec.reason == secondary_reason) {
+            oss << "despite " << primary_reason << "=" << pri_reason_val;
+        } else {
+            oss << "because of " << secondary_reason << "=" << sec_reason_val;
+            oss << " and despite " << primary_reason << "=" << pri_reason_val;
+        }
+
+    } else {
+        oss << "because of " << primary_reason << "=" << pri_reason_val;
+    }
     return oss.str();
 }

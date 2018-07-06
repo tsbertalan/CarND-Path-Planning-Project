@@ -18,6 +18,8 @@ public:
     Neighbor(int id, double x, double y, double vx, double vy);
 
     WorldPose future_position(double dt, CoordinateTransformer &transform);
+
+    double speed();
 };
 
 #endif //PATH_PLANNING_NEIGHBOR_H

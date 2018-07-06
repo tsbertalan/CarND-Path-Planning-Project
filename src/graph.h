@@ -84,7 +84,7 @@ public:
             fprintf(gp, "set yrange [%f:%f] \n", min(lows_y), max(highs_y));
 
 
-        fprintf(gp, "set palette rgb 34,35,36 \n");
+        fprintf(gp, "set palette rgb 33,13,10 \n");
         fprintf(gp, "set key off \n");
         fprintf(gp, "set xlabel '%s' \n", xlabel);
         fprintf(gp, "set ylabel '%s' \n", ylabel);
@@ -95,7 +95,7 @@ public:
         for (int i = 0; i < X.size(); i++) {
             string color = colors[i % colors.size()];
             string style = styles[i % styles.size()];
-            fprintf(gp, " '-' with %s linecolor palette linewidth 2,", style.c_str());
+            fprintf(gp, " '-' with %s linecolor palette linewidth 1,", style.c_str());
         }
         fprintf(gp, "\n");
 
