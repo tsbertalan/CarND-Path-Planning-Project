@@ -45,6 +45,8 @@ Planner::make_plan(
 ) {
     long start_planner_ms = now();
 
+    current_speed *= MIPH_TO_MPS;
+
     // Either extend the leftover trajectory in the intended lane, or bust a move.
     vector<Trajectory> plans;
     vector<string> plan_names;
@@ -61,35 +63,29 @@ Planner::make_plan(
     // Generate multiple plans.
     for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
 
-        int otherlane = uniform_random(0, 3);
+        int plan_target = uniform_random(0, 3);
         double target_speed = uniform_random(MIN_SPEED_CONSIDERED, MAX_SPEED_CONSIDERED);
         double DT = uniform_random(.5, 1.75);
         double d_offset = 0;
         double DS = -1;
 //        double DS=uniform_random(8, 32);
 
-        Trajectory lane_switch = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
-        lane_switch.JMT_extend(
+        Trajectory plan = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
+        plan.JMT_extend(
                 transform,
                 target_speed,
                 PLAN_LENGTH,
                 current,
                 current_speed,
                 EXT_TIME,
-                otherlane * 4 + 2 + d_offset,
+                plan_target * 4 + 2 + d_offset,
                 DS,
                 DT
         );
-        ostringstream oss;
-        if (otherlane == goal_lane)
-            oss << "cruise";
-        else
-            oss << "lane_switch" << current_lane << "to" << otherlane;
-        oss << " to " << target_speed << "[m/s]";
-        oss << " in " << DT << "[s]";
-        plan_names.push_back(oss.str());
-        plans.push_back(lane_switch);
+        plan_names.push_back(describe_plan(plan, current_speed, target_speed, DT));
+        plans.push_back(plan);
     }
+
 
     // Evaluate costs.
     vector<CostDecision> decisions;
@@ -106,6 +102,7 @@ Planner::make_plan(
         CostDecision decision = get_cost(plan, neighbors, label, i == 0);
         costs.push_back(decision.cost);
         decisions.push_back(decision);
+
     }
 
 
@@ -134,8 +131,11 @@ Planner::make_plan(
     int best_plan = argmin(costs);
     double lowest_cost = costs[best_plan];
     Trajectory plan = plans[best_plan];
-    cout << "Chose plan " << best_plan << " (" << plan_names[best_plan] << ")";
+    cout << "Chose plan " << best_plan << endl << "   " << plan_names[best_plan] << endl;
     CostDecision best_dec = decisions[best_plan];
+
+
+    // Say why we chose.
     double pri_reason_val = best_dec.cost_parts[
             find(best_dec.cost_part_names.begin(), best_dec.cost_part_names.end(), primary_reason)
             - best_dec.cost_part_names.begin()
@@ -144,24 +144,27 @@ Planner::make_plan(
             find(best_dec.cost_part_names.begin(), best_dec.cost_part_names.end(), secondary_reason)
             - best_dec.cost_part_names.begin()
     ];
+
     if (best_dec.reason == primary_reason) {
-        cout << " because of " << secondary_reason << "=" << sec_reason_val;
-        if (primary_reason != secondary_reason)
+        if (best_dec.reason == secondary_reason) {
+            cout << " despite " << primary_reason << "=" << pri_reason_val;
+        } else {
+            cout << " because of " << secondary_reason << "=" << sec_reason_val;
             cout << " and despite " << primary_reason << "=" << pri_reason_val;
+        }
+
     } else {
         cout << " because of " << primary_reason << "=" << pri_reason_val;
     }
+
     cout << "." << endl;
 
-    // Record the time that a lane switch was planned.
-    int plan_goal_lane = get_lane(plan);
-    if (plan_goal_lane != current_lane) {
-        last_lane_change_time_ms = now();
-    }
-    if (plan_goal_lane != goal_lane)
-        cout << " ======== LANE CHANGE ======= " << endl;
-    goal_lane = plan_goal_lane;
 
+    // Record the time that a lane switch was planned.
+    if (plan_changes_goal(plan)) {
+        last_lane_change_time_ms = now();
+        cout << " ------------------------ LANE CHANGE ------------------------ " << endl;
+    }
 
     // Describe the neighbors.
     if (neighbors.size() > 0) {
@@ -175,10 +178,21 @@ Planner::make_plan(
 
     if (DEBUG) show_map(plans, neighbors);
 
+    FrenetPose fp = transform.to_frenet(current);
+    cout << "Frenet position: s=" << fp.s << ", d=" << fp.d << ".";
+    if (goal_lane != current_lane || plan_changes_goal(plan)) {
+        cout << " Goal: " << current_lane << "==>";
+        if (plan_changes_goal(plan))
+            cout << "(" << goal_lane << "->" << get_lane(plan) << ")";
+        else
+            cout << goal_lane;
+    }
+    cout << endl;
+
     long end_planner_ms = now();
     cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
 
-
+    goal_lane = get_lane(plan);
     return plan;
 }
 
@@ -253,7 +267,6 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
 }
 
-
 double Planner::uniform_random(double low, double high) {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(low, high);
@@ -266,187 +279,35 @@ int Planner::uniform_random(int low, int high_plus_one) {
     return dis(gen);
 }
 
-double expit(double x, double x_critical, double scale_factor = 1) {
-    return 1. / (1. + (double) exp((x - x_critical) * scale_factor));
+bool Planner::plan_changes_goal(Trajectory plan) {
+    int plan_goal_lane = get_lane(plan);
+    int old_goal_lane = goal_lane;
+    return plan_goal_lane != goal_lane;
 }
 
-CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string label, bool heading) {
-
-    const double FACTOR_DISTANCE_X = 1;
-    const double FACTOR_DISTANCE_Y = 1;
-    const double CRITICAL_DISTANCE_X = 10;
-    const double SCALE_DISTANCE_X = .5;
-    const double CRITICAL_DISTANCE_Y = 1.5;
-    const double SCALE_DISTANCE_Y = 3.5;
-    const double CHECK_SCALE = 1.5;
-
-    const double FACTOR_ACCEL = 1. / 20;
-
-    // If goal speed is too close to MAX_SPEED_CONSIDERED,
-    // we'll be starved for fast-enough trajectories,
-    // and might drop other criteria.
-    const double GOAL_SPEED = 45 * MIPH_TO_MPS;
-    const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
-    const double FACTOR_NEGATIVE_SPEED_DEVIATION = .2;
-    const double FACTOR_VDEV = .1;
-
-    const double FACTOR_LANE_SW = .1;
-
-    const double CRITICAL_SWITCHTIME = 500;
-    const double SCALE_SWITCHTIME = .01;
-    const double FACTOR_FASTSW = .4;
-
-    vector<const char *> cost_names;
-    vector<double> cost_parts;
-
-
-    // TODO: Reformulate costs as [0,1]-valued functions.
-
-
-    //// Check whether the plan entails likely collisions.
-    // TODO: Use an anisotropic distance.
-    // TODO: Analyze and consider side-swipe scenarios.
-    double cost_dist_x = 0;
-    double cost_dist_y = 0;
-    int i_neighbor = -1;
-    for (auto neighbor : neighbors) {
-        i_neighbor++;
-        double t0 = plan.times[0];
-
-        for (int i = 0; i < plan.size(); i++) {
-            double t = plan.times[i];
-            CarPose ego = transform.to_car(plan.poses[i]);
-            CarPose other = transform.to_car(neighbor.future_position(t - t0, transform));
-            double dx = fabs(ego.x - other.x);
-            double dy = fabs(ego.y - other.y);
-
-            double cost;
-
-            // Track the MAXIMUM costs obtained.
-            cost = expit(dx, CRITICAL_DISTANCE_X, SCALE_DISTANCE_X);
-            if (
-                // Track the maximum.
-                    cost > cost_dist_x
-                    && dy < CRITICAL_DISTANCE_Y * CHECK_SCALE
-                    )
-                cost_dist_x = cost;
-            cost = expit(dy, CRITICAL_DISTANCE_Y, SCALE_DISTANCE_Y);
-            if ( // Track the maximum.
-                    cost > cost_dist_y
-                    // Don't reacto to close-in-y cars unless we're basically abreast of them.
-                    // Thes kind of nonlinear effects make it clear
-                    // why a NEURAL NETWORK would be good for this kind of stuff.
-                    && dx < CRITICAL_DISTANCE_X * CHECK_SCALE
-                    )
-                cost_dist_y = cost;
-        }
-    }
-    cost_parts.push_back(cost_dist_x * FACTOR_DISTANCE_X);
-    cost_names.push_back("dist_x");
-    cost_parts.push_back(cost_dist_y * FACTOR_DISTANCE_Y);
-    cost_names.push_back("dist_y");
-
-
-    //// Add up the total acceleration.
-    double cost_accel = 0;
-    for (int i_t = 2; i_t < plan.size(); i_t++) {
-        WorldPose pose0 = plan.poses[i_t - 2];
-        WorldPose pose1 = plan.poses[i_t - 1];
-        WorldPose pose2 = plan.poses[i_t - 0];
-
-        double t0 = plan.times[i_t - 2];
-        double t1 = plan.times[i_t - 1];
-        double t2 = plan.times[i_t - 0];
-
-        double v0 = get_world_dist(pose0, pose1) / (t1 - t0);
-        double v1 = get_world_dist(pose1, pose2) / (t2 - t1);
-
-        double accel = fabs((v1 - v0) / (t1 - t0));
-        cost_accel += accel;
-    }
-    cost_accel /= plan.size() - 2;
-    cost_parts.push_back(cost_accel * FACTOR_ACCEL);
-    cost_names.push_back("accel");
-
-
-    //// Find the mean deviation from goal velocity; penalizing larger differences more.
-    double cost_vdeviation = 0;
-    for (int i_t = 1; i_t < plan.size(); i_t++) {
-        double dt = plan.times[i_t] - plan.times[i_t - 1];
-        WorldPose p1 = plan.poses[i_t - 1];
-        WorldPose p2 = plan.poses[i_t - 0];
-        double dxdt = (p2.x - p1.x) / dt;
-        double dydt = (p2.y - p1.y) / dt;
-        double speed = sqrt(dxdt * dxdt + dydt * dydt);
-        //double speed = get_world_dist(p1, p2) / fabs(dt);
-        double vdev = speed - GOAL_SPEED;
-        if (vdev > 0)
-            vdev *= FACTOR_POSITIVE_SPEED_DEVIATION;
-        else
-            vdev *= -FACTOR_NEGATIVE_SPEED_DEVIATION;
-        cost_vdeviation += vdev;
-    }
-    cost_vdeviation /= plan.size() - 1;
-    cost_parts.push_back(cost_vdeviation * FACTOR_VDEV);
-    cost_names.push_back("vdev");
-
-
-    //// Penalize any lane shifts.
+bool Planner::cross_lane_plan(Trajectory plan) {
     int plan_goal_lane = get_lane(plan);
-    bool plan_changes_goal_lane = goal_lane != plan_goal_lane;
-    if (plan_changes_goal_lane)
-        cost_parts.push_back(FACTOR_LANE_SW);
-    else
-        cost_parts.push_back(0);
-    cost_names.push_back("sw");
+    int old_goal_lane = goal_lane;
+    return plan_goal_lane != current_lane;
+}
 
+string Planner::describe_plan(Trajectory &plan, double current_speed, double target_speed, double DT) {
 
-    //// Penalise quickly repeated lane shifts.
-    double cost_fastsw = 0;
-    if (plan_changes_goal_lane) {
-        cost_fastsw = expit(now() - last_lane_change_time_ms, CRITICAL_SWITCHTIME, SCALE_SWITCHTIME);
+    int plan_target = get_lane(plan);
+
+    ostringstream oss;
+    if (!plan_changes_goal(plan)) {
+        if (goal_lane == current_lane)
+            oss << "cruise" << current_lane;
+        else
+            oss << "cont_lane_transfer" << current_lane << "to" << plan_target;
+    } else {
+        if (plan_target == current_lane)
+            oss << "abort_transfer_keep" << current_lane;
+        else
+            oss << "begin_lane_transfer" << current_lane << "to" << plan_target;
     }
-    cost_parts.push_back(cost_fastsw * FACTOR_FASTSW);
-    cost_names.push_back("fastsw");
-
-
-    //// TODO: Add an out-of-lane cost.
-
-
-    //// TODO: Add a max-jerk cost.
-
-
-    ////// Total the cost.
-    double cost = 0;
-    for (double cp : cost_parts)
-        cost += cp;
-
-    // Print the parts.
-    int print_width = 12;
-    if (label.length() > 0 && heading) {
-        cout << "           ";
-        for (const char *n : cost_names) {
-            printf("%*s", print_width, n);
-        }
-        cout << endl;
-    }
-    int largest_component = argmax(cost_parts);
-    const char *reason = cost_names[largest_component];
-    if (label.length() > 0) {
-        cout << "cost = sum(";
-        const char *fmt = "%*.3f";
-        for (double cp : cost_parts) {
-            printf(fmt, print_width - 1, cp);
-            if (cp == cost_parts[largest_component])
-                printf("*");
-            else
-                printf(" ");
-        }
-        cout << ") =";
-        printf(fmt, print_width, cost);
-        cout << " for " << label << "." << endl;
-    }
-
-    CostDecision cd = {.cost=cost, .reason=reason, .cost_parts=cost_parts, .cost_part_names=cost_names};
-    return cd;
+    oss << " to " << target_speed << " from " << current_speed << " [m/s]";
+    oss << " in " << DT << "[s]";
+    return oss.str();
 }

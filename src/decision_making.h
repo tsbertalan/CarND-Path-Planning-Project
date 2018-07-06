@@ -37,6 +37,12 @@ private:
     std::random_device rd;
     int current_lane = 0;
     int goal_lane = 0;
+public:
+    int getCurrent_lane() const;
+
+    int getGoal_lane() const;
+
+private:
     long last_lane_change_time_ms;
 
     int get_lane(double d);
@@ -45,7 +51,7 @@ private:
 
     int get_lane(WorldPose wp);
 
-    int get_lane(Trajectory plan, bool final = true);
+    bool cross_lane_plan(Trajectory plan);
 
     long construction_time;
 
@@ -59,9 +65,9 @@ public:
     CoordinateTransformer transform;
     // m/s, NOT mph
     double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
-    double MIN_SPEED_CONSIDERED = 10 * MIPH_TO_MPS;
+    double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
     int PLAN_LENGTH = 1000;
-    double EXT_TIME = 1.6;
+    double EXT_TIME = 1;
     unsigned long NUM_REUSED = 8;
 
     Planner(CoordinateTransformer &transform);
@@ -78,6 +84,12 @@ public:
     void show_map(vector<Trajectory> plans, vector<Neighbor> neighbors);
 
     CostDecision get_cost(Trajectory plan, vector<Neighbor> neighbors, string label = "", bool heading = false);
+
+    bool plan_changes_goal(Trajectory plan);
+
+    int get_lane(Trajectory plan, bool final = true);
+
+    string describe_plan(Trajectory &plan, double current_speed, double target_speed, double DT);
 
 };
 

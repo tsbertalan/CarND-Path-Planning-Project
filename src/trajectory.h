@@ -8,7 +8,8 @@
 #include <vector>
 #include "coordinates.h"
 #include "jmt.h"
-
+#include <string>
+#include <sstream>
 
 class Trajectory {
 private:
@@ -17,7 +18,6 @@ private:
     void init(std::vector<double> X, std::vector<double> Y, double dt = .02);
 
     void extend(PolyTrajectory path, unsigned long max_length, double DT, CoordinateTransformer &transform);
-
 
 public:
     std::vector<WorldPose> poses;
