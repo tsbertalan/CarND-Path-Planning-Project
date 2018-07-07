@@ -84,13 +84,37 @@ void Trajectory::extend(
     } else {
         t0 = 0;
     }
+
+
+    // Evaluate the Frenet JMT coarsely, because the Frenet transform is buggy.
+    vector<double> coarse_x, coarse_y, coarse_t;
     double t = t0;
     while (t < t0 + text) {
-        t += dt;
+        t += .1;
 
         vector<double> sd = sdpath(t - t0);
         FrenetPose pose = {.s=sd[0], .d=sd[1], .yaw=0};
         WorldPose wp = transform.to_world(pose);
+
+        coarse_x.push_back(wp.x);
+        coarse_y.push_back(wp.y);
+        coarse_t.push_back(t);
+
+
+    }
+
+    // Make a fine interpolant with a spline.
+    tk::spline sp_x, sp_y;
+    sp_x.set_points(coarse_t, coarse_x);
+    sp_y.set_points(coarse_t, coarse_y);
+
+    // Use the interpolant.
+    t = t0;
+    while(t < t0 + text) {
+        t += dt;
+
+        WorldPose wp = {.x=sp_x(t), .y=sp_y(t), .yaw=0};
+
         poses.push_back(wp);
         times.push_back(t);
 
@@ -98,6 +122,7 @@ void Trajectory::extend(
             break;
         }
     }
+
 
 }
 
@@ -128,16 +153,19 @@ void Trajectory::JMT_extend(
 
     if (size() > 0) {
         initial_pose = transform.to_frenet(ultimate());
+
+        // If we have two points, we can estimate the initial velocity.
         if (size() > 1) {
-            FrenetPose rm1 = transform.to_frenet(penultimate());
-            vs0 = (initial_pose.s - rm1.s) / dt;
-            vd0 = (initial_pose.d - rm1.d) / dt;
+            FrenetPose pose_prev = transform.to_frenet(penultimate());
+            vs0 = (initial_pose.s - pose_prev.s) / dt;
+            vd0 = (initial_pose.d - pose_prev.d) / dt;
 
+            // If we have three points, we can estimate the initial acceleration.
             if (size() > 2) {
-                FrenetPose rm2 = transform.to_frenet(antepenultimate());
+                FrenetPose pose_prev_prev = transform.to_frenet(antepenultimate());
 
-                double vsm1 = (rm1.s - rm2.s) / dt;
-                double vdm1 = (rm1.d - rm2.d) / dt;
+                double vsm1 = (pose_prev.s - pose_prev_prev.s) / dt;
+                double vdm1 = (pose_prev.d - pose_prev_prev.d) / dt;
 
                 as0 = (vs0 - vsm1) / dt;
                 ad0 = (vd0 - vdm1) / dt;
@@ -146,6 +174,8 @@ void Trajectory::JMT_extend(
     }
 
     if (Ds == -1) {
+        // If distance to drive isn't given,
+        // approximate it by pretending constant mean speed.
         Ds = (vs0 + final_speed) / 2 * DT;
     }
 

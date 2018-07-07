@@ -19,6 +19,8 @@
 #include "neighbor.h"
 #include <chrono>
 
+#include <fstream>
+
 using namespace std;
 
 const double MIPH_TO_MPS = (5280 / 1.) * (1. / 3.2808) * (1 / 3600.);
@@ -37,6 +39,8 @@ private:
     std::random_device rd;
     int current_lane = 0;
     int goal_lane = 0;
+    ofstream pyfile;
+
 public:
     int getCurrent_lane() const;
 

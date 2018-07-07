@@ -5,6 +5,8 @@
 #include "decision_making.h"
 #include "utils.h"
 
+#include <fstream>
+
 using namespace std;
 using namespace std::chrono;
 
@@ -33,7 +35,6 @@ int Planner::get_lane(Trajectory plan, bool final) {
 }
 
 
-
 Trajectory
 Planner::make_plan(
         WorldPose current,
@@ -43,6 +44,8 @@ Planner::make_plan(
         const double dt
 ) {
 
+    pyfile << "data[" << now() << "] = dict(" << endl;
+
     // Prepare things.
     long start_planner_ms = now();
 
@@ -50,11 +53,16 @@ Planner::make_plan(
     transform.set_reference(current);
     current_lane = get_lane(current);
 
+
+    if(current_speed > 40)
+        cout << "Current speed seems rather high." << endl;
+
+
     vector<Trajectory> plans;
     vector<string> plan_names;
 
-    int NUM_PLANS = 64;
-    const bool SHOW_ALL_PLANS = true;
+    int NUM_PLANS = 16;
+    const bool SHOW_ALL_PLANS = false;
     const bool DEBUG = false;
     double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
     double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
@@ -140,9 +148,17 @@ Planner::make_plan(
     for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
 
         int plan_target = uniform_random(0, 3);
+
+//        double target_speeds[] = {10, 20, 30};
+//        double target_speed = target_speeds[uniform_random(0, 3)];
         double target_speed = uniform_random(MIN_SPEED_CONSIDERED, MAX_SPEED_CONSIDERED);
-        double DT = uniform_random(.5, 1.5);
-        double d_offset = 0;
+//        double target_speed = 40 * MIPH_TO_MPS;
+
+//        double DTs[] = {.75, 1};
+//        double DT = DTs[uniform_random(0, 2)];
+        double DT = uniform_random(.75, 1.);
+//        double DT = .8;
+
         double DS = -1;
 
         Trajectory plan = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
@@ -161,7 +177,7 @@ Planner::make_plan(
                 current,
                 current_speed,
                 tmax,
-                plan_target * 4 + 2 + d_offset,
+                plan_target * 4 + 2,
                 DS,
                 DT
         );
@@ -195,6 +211,60 @@ Planner::make_plan(
     cout << "Chose plan " << best_plan << endl << "    " << plan_names[best_plan] << endl;
     CostDecision best_dec = decisions[best_plan];
 
+    pyfile << "desc = '" << plan_names[best_plan] << "'," << endl;
+
+
+    // Print the plan.
+    Trajectory tjs[] = {leftover.subtrajectory(NUM_REUSED + 1, 0, dt), plan};
+
+    for(int i=0; i<2; i++) {
+        Trajectory tj = tjs[i];
+        string tag;
+        if(i)
+            tag = "";
+        else
+            tag = "_prev";
+
+        pyfile << "x" << tag << " = [";
+        for(WorldPose p : tj.poses)
+            pyfile << p.x << ",";
+        pyfile << "]," << endl;
+
+        pyfile << "y" << tag << " = [";
+        for(WorldPose p : tj.poses)
+            pyfile << p.y << ",";
+        pyfile << "]," << endl;
+
+        pyfile << "t" << tag << " = [";
+        for(double t : tj.times)
+            pyfile << t << ",";
+        pyfile << "]," << endl;
+
+        pyfile << "s" << tag << " = [";
+        for(WorldPose p : tj.poses) {
+            FrenetPose fp = transform.to_frenet(p);
+            pyfile << fp.s << ",";
+        }
+        pyfile << "]," << endl;
+
+        pyfile << "d" << tag << " = [";
+        for(WorldPose p : tj.poses) {
+            FrenetPose fp = transform.to_frenet(p);
+            pyfile << fp.d << ",";
+        }
+        pyfile << "]," << endl;
+    }
+
+    pyfile << "neighbors = [";
+    for(auto n : neighbors) {
+        WorldPose p = n.current;
+        pyfile << "(" << p.x << "," << p.y << "," << n.vx << "," << n.vy <<"),";
+    }
+    pyfile << "]," << endl;
+
+
+
+
 
     // Say why we chose.
     cout << "    " << declare_reasons(decisions, best_dec) << "." << endl;
@@ -223,6 +293,8 @@ Planner::make_plan(
     long end_planner_ms = now();
     cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
 
+    pyfile << ")" << endl;
+
     goal_lane = get_lane(plan);
     return plan;
 }
@@ -235,6 +307,8 @@ Planner::Planner(CoordinateTransformer &transform) : transform(transform) {
     construction_time = 0;
     construction_time = now();
     last_lane_change_time_ms = 0;
+    pyfile = ofstream("data.py");
+    pyfile << "data = {}" << endl;
 }
 
 void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
