@@ -60,7 +60,8 @@ get_frenet(
         const std::vector<double> &maps_x,
         const std::vector<double> &maps_y,
         const std::vector<double> &maps_dx,
-        const std::vector<double> &maps_dy
+        const std::vector<double> &maps_dy,
+        const std::vector<double> &maps_s
 ) {
     int next_wp = next_waypoint(x, y, theta, maps_x, maps_y);
 
@@ -94,12 +95,15 @@ get_frenet(
     }
 
     // calculate s value
-    double frenet_s = 0;
-    for (int i = 0; i < prev_wp; i++) {
-        frenet_s += distance(maps_x[i], maps_y[i], maps_x[i + 1], maps_y[i + 1]);
-    }
+//    double frenet_s = 0;
+//    for (int i = 0; i < prev_wp; i++) {
+//        frenet_s += distance(maps_x[i], maps_y[i], maps_x[i + 1], maps_y[i + 1]);
+//    }
+//
+//    frenet_s += distance(0, 0, proj_x, proj_y);
 
-    frenet_s += distance(0, 0, proj_x, proj_y);
+    double tangent_hyp = sqrt(n_x * n_x + n_y * n_y);
+    double frenet_s = maps_s[prev_wp] + proj_norm * tangent_hyp;
 
     double gamma = atan2(maps_dy[prev_wp], maps_dx[prev_wp]) + pi() / 2;
     double frenet_yaw = theta - gamma;
@@ -109,35 +113,35 @@ get_frenet(
 }
 
 
-std::vector<double> get_xy(
-        double s, double d,
-        const std::vector<double> &maps_s,
-        const std::vector<double> &maps_x,
-        const std::vector<double> &maps_y
-) {
-    int prev_wp = -1;
-
-    while (s > maps_s[prev_wp + 1] && (prev_wp < (int) (maps_s.size() - 1))) {
-        prev_wp++;
-    }
-
-    int wp2 = (prev_wp + 1) % maps_x.size();
-
-    double heading = atan2((maps_y[wp2] - maps_y[prev_wp]), (maps_x[wp2] - maps_x[prev_wp]));
-    // the x,y,s along the segment
-    double seg_s = (s - maps_s[prev_wp]);
-
-    double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
-    double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
-
-    double perp_heading = heading - pi() / 2;
-
-    double x = seg_x + d * cos(perp_heading);
-    double y = seg_y + d * sin(perp_heading);
-
-    return {x, y};
-
-}
+//std::vector<double> get_xy(
+//        double s, double d,
+//        const std::vector<double> &maps_s,
+//        const std::vector<double> &maps_x,
+//        const std::vector<double> &maps_y
+//) {
+//    int prev_wp = -1;
+//
+//    while (s > maps_s[prev_wp + 1] && (prev_wp < (int) (maps_s.size() - 1))) {
+//        prev_wp++;
+//    }
+//
+//    int wp2 = (prev_wp + 1) % maps_x.size();
+//
+//    double heading = atan2((maps_y[wp2] - maps_y[prev_wp]), (maps_x[wp2] - maps_x[prev_wp]));
+//    // the x,y,s along the segment
+//    double seg_s = (s - maps_s[prev_wp]);
+//
+//    double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
+//    double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
+//
+//    double perp_heading = heading - pi() / 2;
+//
+//    double x = seg_x + d * cos(perp_heading);
+//    double y = seg_y + d * sin(perp_heading);
+//
+//    return {x, y};
+//
+//}
 
 
 std::vector<double> get_world(
@@ -208,7 +212,7 @@ next_waypoint(double x, double y, double theta, const std::vector<double> &maps_
     double angle = fabs(theta - heading);
     angle = std::min(2 * pi() - angle, angle);
 
-    if (angle > pi() / 2) {
+    if (angle > pi() / 4) {
         closestWaypoint++;
         if (closestWaypoint == maps_x.size()) {
             closestWaypoint = 0;
@@ -224,10 +228,10 @@ double distance(double x1, double y1, double x2, double y2) {
 }
 
 
-double deg2rad(double x) { return x * pi() / 180; }
-
-
-double rad2deg(double x) { return x * 180 / pi(); }
+//double deg2rad(double x) { return x * pi() / 180; }
+//
+//
+//double rad2deg(double x) { return x * 180 / pi(); }
 
 
 CoordinateTransformer::CoordinateTransformer() {
@@ -259,6 +263,13 @@ CoordinateTransformer::CoordinateTransformer() {
         map_waypoints_dx.push_back(d_x);
         map_waypoints_dy.push_back(d_y);
     }
+
+    this->max_s = max(map_waypoints_s);
+
+    spline_x.set_points(map_waypoints_s, map_waypoints_x);
+    spline_y.set_points(map_waypoints_s, map_waypoints_y);
+    spline_dx.set_points(map_waypoints_s, map_waypoints_dx);
+    spline_dy.set_points(map_waypoints_s, map_waypoints_dy);
 }
 
 
@@ -286,13 +297,19 @@ WorldPose CoordinateTransformer::to_world(CarPose from) {
 
 WorldPose CoordinateTransformer::to_world(FrenetPose from) {
 
-    std::vector<double> xyt = get_world(from.s, from.d, from.yaw, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+    double s = fmod(from.s, max_s);
+
     WorldPose wp;
-    wp.x = xyt[0];
-    wp.y = xyt[1];
-    wp.yaw = xyt[2];
+
+    wp.x = spline_x(s) + from.d * spline_dx(s);
+    wp.y = spline_y(s) + from.d * spline_dy(s);
+
+    double theta_antinormal = atan2(spline_dy(s), spline_dx(s));
+    double heading = theta_antinormal + pi() / 2;
+    wp.yaw = heading + from.yaw;
 
     return wp;
+
 }
 
 
@@ -327,7 +344,8 @@ FrenetPose CoordinateTransformer::to_frenet(WorldPose from) {
     std::vector<double> sdy = get_frenet(
             from.x, from.y, from.yaw,
             map_waypoints_x, map_waypoints_y,
-            map_waypoints_dx, map_waypoints_dy
+            map_waypoints_dx, map_waypoints_dy,
+            map_waypoints_s
     );
     FrenetPose fp;
     fp.s = sdy[0];

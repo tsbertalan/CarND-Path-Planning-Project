@@ -88,36 +88,33 @@ void Trajectory::extend(
 
     // Evaluate the Frenet JMT coarsely, because the Frenet transform is buggy.
     vector<double> coarse_x, coarse_y, coarse_t;
-    double t = t0;
-    while (t < t0 + text) {
-        t += .1;
+    for (double t = t0 + dt; t < t0 + text; t += dt) {
 
         vector<double> sd = sdpath(t - t0);
         FrenetPose pose = {.s=sd[0], .d=sd[1], .yaw=0};
         WorldPose wp = transform.to_world(pose);
 
-        coarse_x.push_back(wp.x);
-        coarse_y.push_back(wp.y);
-        coarse_t.push_back(t);
-
-
-    }
-
-    // Make a fine interpolant with a spline.
-    tk::spline sp_x, sp_y;
-    sp_x.set_points(coarse_t, coarse_x);
-    sp_y.set_points(coarse_t, coarse_y);
-
-    // Use the interpolant.
-    t = t0;
-    while(t < t0 + text) {
-        t += dt;
-
-        WorldPose wp = {.x=sp_x(t), .y=sp_y(t), .yaw=0};
-
         poses.push_back(wp);
         times.push_back(t);
 
+//        coarse_x.push_back(wp.x);
+//        coarse_y.push_back(wp.y);
+//        coarse_t.push_back(t);
+//    }
+
+//    // Make a fine interpolant with a spline.
+//    tk::spline sp_x, sp_y;
+//    sp_x.set_points(coarse_t, coarse_x);
+//    sp_y.set_points(coarse_t, coarse_y);
+//
+//    // Use the interpolant.
+//    for(double t=t0; t<t0+text; t+=dt){
+//
+//        WorldPose wp = {.x=sp_x(t), .y=sp_y(t), .yaw=0};
+//
+//        poses.push_back(wp);
+//        times.push_back(t);
+//
         if (size() == max_length) {
             break;
         }
@@ -149,23 +146,30 @@ void Trajectory::JMT_extend(
     double vd0 = 0;
     double ad0 = 0;
 
-    double t0 = dt * size();
-
     if (size() > 0) {
         initial_pose = transform.to_frenet(ultimate());
 
         // If we have two points, we can estimate the initial velocity.
         if (size() > 1) {
-            FrenetPose pose_prev = transform.to_frenet(penultimate());
-            vs0 = (initial_pose.s - pose_prev.s) / dt;
-            vd0 = (initial_pose.d - pose_prev.d) / dt;
+            vector<double> S, D;
+            for (WorldPose p : poses) {
+                FrenetPose fp = transform.to_frenet(p);
+                S.push_back(fp.s);
+                D.push_back(fp.d);
+            }
+            tk::spline s_spline, d_spline;
+            s_spline.set_points(times, S);
+            d_spline.set_points(times, D);
+
+            double tf = times[size() - 1];
+            vs0 = (s_spline(tf) - s_spline(tf - dt)) / dt;
+            vd0 = (d_spline(tf) - d_spline(tf - dt)) / dt;
 
             // If we have three points, we can estimate the initial acceleration.
             if (size() > 2) {
-                FrenetPose pose_prev_prev = transform.to_frenet(antepenultimate());
 
-                double vsm1 = (pose_prev.s - pose_prev_prev.s) / dt;
-                double vdm1 = (pose_prev.d - pose_prev_prev.d) / dt;
+                double vsm1 = (s_spline(tf - dt) - s_spline(tf - dt * 2)) / dt;
+                double vdm1 = (d_spline(tf - dt) - d_spline(tf - dt * 2)) / dt;
 
                 as0 = (vs0 - vsm1) / dt;
                 ad0 = (vd0 - vdm1) / dt;

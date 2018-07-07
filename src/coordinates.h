@@ -11,14 +11,23 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include "spline.h"
+#include "utils.h"
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
 std::vector<double>
-get_frenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y);
+get_frenet(
+        double x, double y, double theta,
+        const std::vector<double> &maps_x, const std::vector<double> &maps_y
+);
 
 std::vector<double>
-get_frenet(double x, double y, double theta, const std::vector<double> &maps_x, const std::vector<double> &maps_y,
-           const std::vector<double> &maps_dx, const std::vector<double> &maps_dy);
+get_frenet(
+        double x, double y, double theta,
+        const std::vector<double> &maps_x, const std::vector<double> &maps_y,
+        const std::vector<double> &maps_dx, const std::vector<double> &maps_dy,
+        const std::vector<double> &maps_s
+);
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
 std::vector<double> get_xy(
@@ -83,6 +92,8 @@ private:
     std::vector<double> map_waypoints_dx;
     std::vector<double> map_waypoints_dy;
     WorldPose car_reference;
+    double max_s;
+    tk::spline spline_x, spline_y, spline_dx, spline_dy;
 
 public:
     CoordinateTransformer();

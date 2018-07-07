@@ -26,7 +26,7 @@ include_directories(/usr/include/python2.7)
 link_directories(/usr/include/python2.7)
 
 
-#add_executable(test_program ${sources} src/test.cpp)
+add_executable(test_program ${sources} src/test.cpp)
 
 add_executable(path_planning ${sources} src/main.cpp)
 

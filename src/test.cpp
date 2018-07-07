@@ -3,7 +3,6 @@
 //
 #include <iostream>
 #include "coordinates.h"
-#include <assert.h>
 
 // https://github.com/jal278/plotpipe
 #include "graph.h"
@@ -51,6 +50,11 @@ int main() {
     }
     cout << "]" << endl;
 
+    cout << "xyt=[";
+    for (WorldPose pose : newPlan.poses) {
+        cout << "(" << pose.x << "," << pose.y << "," << pose.yaw << "),";
+    }
+    cout << "]" << endl;
 
     cout << "xyt_ret=[";
     for (WorldPose pose : newPlan.poses) {
@@ -83,5 +87,4 @@ int main() {
     plot sdplot_window;
     sdplot_window.plot_data(spoints, dpoints, "points", "d vs s (after intermediate xy form)");
 
-    cout << cp.x << endl;
 }
