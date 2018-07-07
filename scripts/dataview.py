@@ -50,7 +50,7 @@ show(d['x'], d['y'], d['t'], d['s'], d['d'])
 SHOW_PLANS = True
 SHOW_ACTUAL = True
 MIN_K = 0
-MAX_K = -20
+MAX_K = 2#-20
 
 fig, ax = plt.subplots(figsize=(16,9))
 for k in keys[MIN_K:MAX_K]:
@@ -88,10 +88,10 @@ ax.quiver(
     scale=400, width=.002, alpha=.5, color='yellow'
 )
 
-ax.set_xlim(1100, 1350)
-ax.set_ylim(1170, 1205)
-#ax.set_xlim(900, 945)
-#ax.set_ylim(1122, 1136)
+# ax.set_xlim(1100, 1350)
+# ax.set_ylim(1170, 1205)
+ax.set_xlim(900, 945)
+ax.set_ylim(1122, 1136)
 
 ax.set_xlabel('$x$ [m] (world coordinates)')
 ax.set_ylabel('$y$ [m] (world coordinates)')
