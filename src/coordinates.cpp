@@ -95,13 +95,6 @@ get_frenet(
     }
 
     // calculate s value
-//    double frenet_s = 0;
-//    for (int i = 0; i < prev_wp; i++) {
-//        frenet_s += distance(maps_x[i], maps_y[i], maps_x[i + 1], maps_y[i + 1]);
-//    }
-//
-//    frenet_s += distance(0, 0, proj_x, proj_y);
-
     double tangent_hyp = sqrt(n_x * n_x + n_y * n_y);
     double frenet_s = maps_s[prev_wp] + proj_norm * tangent_hyp;
 
@@ -111,37 +104,6 @@ get_frenet(
     return {frenet_s, frenet_d, frenet_yaw};
 
 }
-
-
-//std::vector<double> get_xy(
-//        double s, double d,
-//        const std::vector<double> &maps_s,
-//        const std::vector<double> &maps_x,
-//        const std::vector<double> &maps_y
-//) {
-//    int prev_wp = -1;
-//
-//    while (s > maps_s[prev_wp + 1] && (prev_wp < (int) (maps_s.size() - 1))) {
-//        prev_wp++;
-//    }
-//
-//    int wp2 = (prev_wp + 1) % maps_x.size();
-//
-//    double heading = atan2((maps_y[wp2] - maps_y[prev_wp]), (maps_x[wp2] - maps_x[prev_wp]));
-//    // the x,y,s along the segment
-//    double seg_s = (s - maps_s[prev_wp]);
-//
-//    double seg_x = maps_x[prev_wp] + seg_s * cos(heading);
-//    double seg_y = maps_y[prev_wp] + seg_s * sin(heading);
-//
-//    double perp_heading = heading - pi() / 2;
-//
-//    double x = seg_x + d * cos(perp_heading);
-//    double y = seg_y + d * sin(perp_heading);
-//
-//    return {x, y};
-//
-//}
 
 
 std::vector<double> get_world(
@@ -228,19 +190,14 @@ double distance(double x1, double y1, double x2, double y2) {
 }
 
 
-//double deg2rad(double x) { return x * pi() / 180; }
-//
-//
-//double rad2deg(double x) { return x * 180 / pi(); }
-
-
 CoordinateTransformer::CoordinateTransformer() {
     // Load up map values for waypoint's x,y,s and d normalized normal vectors
 
     // Waypoint map to read from
     const std::string map_file_ = "../data/highway_map_fine.csv";
+
     // The max s value before wrapping around the track back to 0
-    double max_s = 6945.554;
+    max_s = 6945.554;
 
     std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
 
@@ -263,8 +220,6 @@ CoordinateTransformer::CoordinateTransformer() {
         map_waypoints_dx.push_back(d_x);
         map_waypoints_dy.push_back(d_y);
     }
-
-    this->max_s = max(map_waypoints_s);
 
     spline_x.set_points(map_waypoints_s, map_waypoints_x);
     spline_y.set_points(map_waypoints_s, map_waypoints_y);
@@ -309,7 +264,6 @@ WorldPose CoordinateTransformer::to_world(FrenetPose from) {
     wp.yaw = heading + from.yaw;
 
     return wp;
-
 }
 
 
