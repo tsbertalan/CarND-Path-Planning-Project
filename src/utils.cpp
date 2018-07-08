@@ -44,3 +44,7 @@ std::vector<unsigned long> argsort(std::vector<int> v) {
     return indices;
 }
 
+double expit(double x, double x_critical, double scale_factor) {
+    return 1. / (1. + (double) exp(-(x - x_critical) * scale_factor));
+}
+

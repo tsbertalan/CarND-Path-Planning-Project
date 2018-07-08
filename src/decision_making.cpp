@@ -58,13 +58,13 @@ Planner::make_plan(
     vector<Trajectory> plans;
     vector<string> plan_names;
 
-    int NUM_PLANS = 32;
-    const bool SHOW_ALL_PLANS = false;
+    int NUM_PLANS = 64;
+    const bool SHOW_ALL_PLANS = true;
     const bool DEBUG = false;
     double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
     double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
     unsigned int PLAN_LENGTH = 1000;
-    double EXT_TIME = -1;
+    double EXT_TIME = 2;
     unsigned int NUM_REUSED = 8;
     const double TAILGATE_BUFFER = 8;
 
@@ -154,8 +154,8 @@ Planner::make_plan(
 
 //        double DTs[] = {.75, 1};
 //        double DT = DTs[uniform_random(0, 2)];
-//        double DT = uniform_random(.75, 1.5);
-        double DT = .8;
+        double DT = uniform_random(.75, 1.5);
+//        double DT = .8;
 
         double DS = -1;
 

@@ -27,4 +27,6 @@ std::vector<unsigned long> argsort(std::vector<double> v);
 std::vector<unsigned long> argsort(std::vector<int> v);
 
 
+double expit(double x, double x_critical, double scale_factor = 1);
+
 #endif //PATH_PLANNING_UTILS_H

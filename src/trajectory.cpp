@@ -86,34 +86,34 @@ void Trajectory::extend(
     }
 
 
-    // Evaluate the Frenet JMT coarsely, because the Frenet transform is buggy.
+    // Evaluate the Frenet JMT.
     vector<double> coarse_x, coarse_y, coarse_t;
-    for (double t = t0 + dt; t < t0 + text; t += dt) {
+    for (double t = t0 + dt; t < t0 + text; t += 0.1) {
 
         vector<double> sd = sdpath(t - t0);
         FrenetPose pose = {.s=sd[0], .d=sd[1], .yaw=0};
         WorldPose wp = transform.to_world(pose);
 
-        poses.push_back(wp);
-        times.push_back(t);
-
-//        coarse_x.push_back(wp.x);
-//        coarse_y.push_back(wp.y);
-//        coarse_t.push_back(t);
-//    }
-
-//    // Make a fine interpolant with a spline.
-//    tk::spline sp_x, sp_y;
-//    sp_x.set_points(coarse_t, coarse_x);
-//    sp_y.set_points(coarse_t, coarse_y);
-//
-//    // Use the interpolant.
-//    for(double t=t0; t<t0+text; t+=dt){
-//
-//        WorldPose wp = {.x=sp_x(t), .y=sp_y(t), .yaw=0};
-//
 //        poses.push_back(wp);
 //        times.push_back(t);
+
+        coarse_x.push_back(wp.x);
+        coarse_y.push_back(wp.y);
+        coarse_t.push_back(t);
+    }
+
+    // Make a fine interpolant with a spline.
+    tk::spline sp_x, sp_y;
+    sp_x.set_points(coarse_t, coarse_x);
+    sp_y.set_points(coarse_t, coarse_y);
+
+    // Use the interpolant.
+    for (double t = t0 + dt; t < t0 + text; t += dt) {
+
+        WorldPose wp = {.x=sp_x(t), .y=sp_y(t), .yaw=0};
+
+        poses.push_back(wp);
+        times.push_back(t);
 //
         if (size() == max_length) {
             break;
@@ -169,13 +169,20 @@ void Trajectory::JMT_extend(
             if (size() > 2) {
 
                 double vsm1 = (s_spline(tf - dt) - s_spline(tf - dt * 2)) / dt;
-                double vdm1 = (d_spline(tf - dt) - d_spline(tf - dt * 2)) / dt;
+//                double vdm1 = (d_spline(tf - dt) - d_spline(tf - dt * 2)) / dt;
 
                 as0 = (vs0 - vsm1) / dt;
-                ad0 = (vd0 - vdm1) / dt;
+//                ad0 = (vd0 - vdm1) / dt;
             }
         }
     }
+
+    // Threshold the vd0 velocity--don't bother reproducing small initial sideways movement,
+    // which might be just noise (from the imprecise transforms),
+    // but still can have a macroscopic effect on the generated trajectories.
+    vd0 = expit(fabs(vd0), .5, 50) * vd0;
+//    ad0 = expit(fabs(ad0), 2, 25) * ad0;
+
 
     if (Ds == -1) {
         // If distance to drive isn't given,

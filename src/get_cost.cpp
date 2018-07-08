@@ -4,9 +4,7 @@
 
 #include "decision_making.h"
 
-double expit(double x, double x_critical, double scale_factor = 1) {
-    return 1. / (1. + (double) exp((x - x_critical) * scale_factor));
-}
+
 
 CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string label, bool heading) {
 
@@ -59,8 +57,8 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
 
             double cost;
 
-            cost = expit(dx, CRITICAL_DISTANCE_X, SCALE_DISTANCE_X)
-                   * expit(dy, CRITICAL_DISTANCE_Y, SCALE_DISTANCE_Y);
+            cost = expit(dx, CRITICAL_DISTANCE_X, -SCALE_DISTANCE_X)
+                   * expit(dy, CRITICAL_DISTANCE_Y, -SCALE_DISTANCE_Y);
             if (cost > cost_dist)
                 cost_dist = cost;
         }
@@ -126,7 +124,7 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     //// Penalise quickly repeated lane shifts.
     double cost_fastsw = 0;
     if (plan_changes_goal_lane) {
-        cost_fastsw = expit(now() - last_lane_change_time_ms, CRITICAL_SWITCHTIME, SCALE_SWITCHTIME);
+        cost_fastsw = expit(now() - last_lane_change_time_ms, CRITICAL_SWITCHTIME, -SCALE_SWITCHTIME);
     }
     cost_parts.push_back(cost_fastsw * FACTOR_FASTSW);
     cost_names.push_back("fastsw");

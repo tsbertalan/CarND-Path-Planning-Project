@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy import interpolate
 
 import data as cppdata
 
@@ -22,8 +23,8 @@ def show(x, y, t, s, d, x_prev, y_prev):
     bx.plot(t, x, color='red')
     bx.set_ylabel('x', color='red')
     cx = bx.twinx()
-    cx.plot(t, y, color='blue')
-    cx.set_ylabel('y', color='blue')
+    cx.plot(t, y, color='black')
+    cx.set_ylabel('y', color='black')
 
     for a in bx, cx:
         a.grid(False)
@@ -33,7 +34,7 @@ def show(x, y, t, s, d, x_prev, y_prev):
 
     '========'
 
-    fig, (ax, bx) = plt.subplots(figsize=(16,9), ncols=2)
+    fig, (ax, bx, cx) = plt.subplots(figsize=(16, 9), ncols=3)
     dx = np.diff(x)
     dy = np.diff(y)
     spd = np.sqrt(dx**2 + dy**2) / .02
@@ -42,14 +43,38 @@ def show(x, y, t, s, d, x_prev, y_prev):
     ax.set_ylabel('speed')
     spd[0], spd[-1]
 
-    bx.plot(np.array(s) - min(s), d)
+    bx.plot(np.array(s) - min(s), d, marker='o')
     bx.set_xlabel('s')
     bx.set_ylabel('d')
+    nprev = len(x_prev)
+    print((np.array(s) - min(s))[:nprev], d[:nprev])
+    bx.scatter(
+        (np.array(s) - min(s))[:nprev], d[:nprev],
+        marker='o', facecolors='none', edgecolors='red', s=142,
+        label='leftover',
+        zorder=99)
+
+    cx.plot(t, np.array(s) - min(s), color='black', marker='o')
+    cx.set_xlabel('t', color='black')
+    cx.set_ylabel('s')
+
+    dx = cx.twinx()
+    dx.plot(t, d, color='red', marker='o')
+    dx.set_ylabel('d', color='red')
+    spline_d = interpolate.UnivariateSpline(t[:nprev], d[:nprev], k=3, s=0)
+    tfine = np.linspace(t[0], t[nprev - 1], 200)
+    dx.plot(tfine, spline_d(tfine), color='magenta')
+    dx.set_title("$d'=%f$,\n$d''=%f$" % (
+        spline_d.derivative(1)(t[nprev - 1]),
+        spline_d.derivative(2)(t[nprev - 1]),
+    ), color='magenta')
+
+    cx.grid(False)
 
     fig.tight_layout()
 
 keys = list(sorted(cppdata.data.keys()))
-for which_k in range(len(keys)):
+for which_k in range(len(keys) - 1, -1, -1):
     k = keys[which_k]
     d = cppdata.data[k]
 
