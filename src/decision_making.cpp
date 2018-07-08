@@ -59,7 +59,7 @@ Planner::make_plan(
     vector<string> plan_names;
 
     int NUM_PLANS = 64;
-    const bool SHOW_ALL_PLANS = true;
+    const bool SHOW_ALL_PLANS = false;
     const bool DEBUG = false;
     double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
     double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
@@ -80,65 +80,70 @@ Planner::make_plan(
             xcdists.push_back(fabs(cp.x));
         }
     }
-//    if (!lane_neighbors.empty()) {
-//
-//        long iminc = min_element(xcdists.begin(), xcdists.end()) - xcdists.begin();
-//        Neighbor closest = lane_neighbors[iminc];
-//        CarPose closest_cp = transform.to_car(closest.current);
-//        cout << "Closest-in-xc neighbor in same lane is #" << closest.id << " at " << xcdists[iminc] << "[m]";
-//        cout << " (lane=" << get_lane(closest.current) << ", xc=" << closest_cp.x << ", yc=" << closest_cp.y << ")."
-//             << endl;
-//
-//        if (
-//                xcdists[iminc] < 40
-//                and xcdists[iminc] > TAILGATE_BUFFER
-//                and closest_cp.x > 0
-//                and get_lane(closest.current) == current_lane
-//                ) {
-//            // Generate a following trajectory.
-//            double target_speed = closest.speed();
-//            int plan_target = get_lane(closest.current);
-//
-//            Trajectory follow = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
-//
-//            double lead_distance = max(
-//                    closest_cp.x
-//                    - transform.to_car(leftover.ultimate()).x, 1.
-//            );
-//            if (lead_distance > TAILGATE_BUFFER) {
-//                lead_distance -= TAILGATE_BUFFER;
-//            }
-//            double DT = 2 * lead_distance / (current_speed + target_speed);
-//            double tmax;
-//            if (EXT_TIME != -1) {
-//                tmax = EXT_TIME;
-//            } else {
-//                tmax = DT;
-//                if (!follow.empty())
-//                    tmax += follow.times[follow.size() - 1];
-//            }
-//            follow.JMT_extend(
-//                    transform,
-//                    target_speed,
-//                    PLAN_LENGTH,
-//                    current,
-//                    current_speed,
-//                    tmax,
-//                    plan_target * 4 + 2,
-//                    -1,
-//                    DT
-//            );
-//            ostringstream oss;
-//            oss << "follow_" << closest.id;
-//            plan_names.push_back(oss.str());
-//            plans.push_back(follow);
-//            cout << "Added " << oss.str() << endl;
-//        } else {
-//            if (NUM_PLANS == 0)
-//                NUM_PLANS = 32;
-//        }
-//
-//    }
+    if (!lane_neighbors.empty()) {
+
+        long iminc = min_element(xcdists.begin(), xcdists.end()) - xcdists.begin();
+        Neighbor closest = lane_neighbors[iminc];
+        CarPose closest_cp = transform.to_car(closest.current);
+        cout << "Closest-in-xc neighbor in same lane is #" << closest.id << " at " << xcdists[iminc] << "[m]";
+        cout << " (lane=" << get_lane(closest.current) << ", xc=" << closest_cp.x << ", yc=" << closest_cp.y << ")."
+             << endl;
+
+        if (
+                xcdists[iminc] < 40
+                and xcdists[iminc] > TAILGATE_BUFFER
+                and closest_cp.x > 0
+                and get_lane(closest.current) == current_lane
+                ) {
+            // Generate a following trajectory.
+            double target_speed = closest.speed();
+            int plan_target = get_lane(closest.current);
+
+            Trajectory follow = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
+
+            WorldPose ultimate;
+            if (leftover.empty())
+                ultimate = current;
+            else
+                ultimate = leftover.ultimate();
+            double lead_distance = max(
+                    closest_cp.x
+                    - transform.to_car(ultimate).x, 1.
+            );
+            if (lead_distance > TAILGATE_BUFFER) {
+                lead_distance -= TAILGATE_BUFFER;
+            }
+            double DT = 2 * lead_distance / (current_speed + target_speed);
+            double tmax;
+            if (EXT_TIME != -1) {
+                tmax = EXT_TIME;
+            } else {
+                tmax = DT;
+                if (!follow.empty())
+                    tmax += follow.times[follow.size() - 1];
+            }
+            follow.JMT_extend(
+                    transform,
+                    target_speed,
+                    PLAN_LENGTH,
+                    current,
+                    current_speed,
+                    tmax,
+                    plan_target * 4 + 2,
+                    -1,
+                    DT
+            );
+            ostringstream oss;
+            oss << "follow_" << closest.id;
+            plan_names.push_back(oss.str());
+            plans.push_back(follow);
+            cout << "Added " << oss.str() << endl;
+        } else {
+            if (NUM_PLANS == 0)
+                NUM_PLANS = 32;
+        }
+
+    }
 
 
     // Generate multiple plans.

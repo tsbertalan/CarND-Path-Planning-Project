@@ -47,7 +47,6 @@ def show(x, y, t, s, d, x_prev, y_prev):
     bx.set_xlabel('s')
     bx.set_ylabel('d')
     nprev = len(x_prev)
-    print((np.array(s) - min(s))[:nprev], d[:nprev])
     bx.scatter(
         (np.array(s) - min(s))[:nprev], d[:nprev],
         marker='o', facecolors='none', edgecolors='red', s=142,

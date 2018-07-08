@@ -180,7 +180,7 @@ void Trajectory::JMT_extend(
     // Threshold the vd0 velocity--don't bother reproducing small initial sideways movement,
     // which might be just noise (from the imprecise transforms),
     // but still can have a macroscopic effect on the generated trajectories.
-    vd0 = expit(fabs(vd0), .5, 50) * vd0;
+//    vd0 = expit(fabs(vd0), .5, 50) * vd0;
 //    ad0 = expit(fabs(ad0), 2, 25) * ad0;
 
 
