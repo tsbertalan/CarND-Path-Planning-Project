@@ -103,7 +103,7 @@ void Trajectory::extend(
     }
 
     // Make a fine interpolant with a spline.
-    tk::spline sp_x, sp_y;
+    spline::tk::spline sp_x, sp_y, sp_yaw;
     sp_x.set_points(coarse_t, coarse_x);
     sp_y.set_points(coarse_t, coarse_y);
 
@@ -114,7 +114,7 @@ void Trajectory::extend(
 
         poses.push_back(wp);
         times.push_back(t);
-//
+
         if (size() == max_length) {
             break;
         }
@@ -157,7 +157,7 @@ void Trajectory::JMT_extend(
                 S.push_back(fp.s);
                 D.push_back(fp.d);
             }
-            tk::spline s_spline, d_spline;
+            spline::tk::spline s_spline, d_spline;
             s_spline.set_points(times, S);
             d_spline.set_points(times, D);
 
