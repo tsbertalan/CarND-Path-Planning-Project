@@ -38,7 +38,7 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     const double SCALE_SWITCHTIME = .01;
     const double FACTOR_FASTSW = .4;
 
-    const double FACTOR_OOL = .01;
+    const double FACTOR_OOL = .001;
 
     vector<const char *> cost_names;
     vector<double> cost_parts;
@@ -98,8 +98,8 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
                     double t1 = plan.times[i_t - 2];
                     double v1 = get_world_dist(pose2, pose1) / (t2 - t1);
                     double acceleration_1 = fabs((v2 - v1) / (t2 - t1));
-                    cost_accel += acceleration_1;
-                    num_accel += 1;
+                    if (acceleration_1 > cost_accel)
+                        cost_accel = acceleration_1;
 
                     if(i_t >= 3) {
                         WorldPose pose0 = plan.poses[i_t - 3];
@@ -108,19 +108,17 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
                         double v0 = get_world_dist(pose1, pose0) / (t1 - t0);
                         double acceleration_0 = fabs((v1 - v0) / (t1 - t0));
                         double jerk_0 = fabs((acceleration_1 - acceleration_0) / (t1 - t0));
-                        cost_jerk += jerk_0;
-                        num_jerk += 1;
+                        if (jerk_0 > cost_jerk)
+                            cost_jerk = jerk_0;
                     }
                 }
             }
         }
     }
 
-    cost_accel /= num_accel;
     cost_parts.push_back(cost_accel * FACTOR_ACCEL);
     cost_names.push_back("accel");
 
-    cost_jerk /= num_jerk;
     cost_parts.push_back(cost_jerk * FACTOR_JERK);
     cost_names.push_back("jerk");
 

@@ -49,18 +49,18 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     vector<string> plan_names;
 
     int NUM_PLANS = 200;
-    const bool SHOW_ALL_PLANS = true;
-    const bool LOGGING = false;
+    const bool SHOW_ALL_PLANS = false;
+    const bool LOGGING = true;
     logger.set_status(LOGGING);
     const bool DEBUG = false;
     double MAX_SPEED_CONSIDERED = 49 * MIPH_TO_MPS;
     double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
     unsigned int PLAN_LENGTH = 1000;
-    double EXT_TIME = 3;
+    double EXT_TIME = 4;
     unsigned int NUM_REUSED = 32;
     const double TAILGATE_BUFFER = 12;
 
-    const double MIN_DT = 1;
+    const double MIN_DT = 2;
     const double MAX_DT = 3;
 
     logger.begin_item(now());
@@ -227,7 +227,6 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
         last_lane_change_time_ms = now();
         cout << " ------------------------ LANE CHANGE ------------------------ " << endl;
     }
-
 
     if (DEBUG) show_map(plans, neighbors);
 

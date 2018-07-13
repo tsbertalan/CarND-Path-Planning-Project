@@ -174,10 +174,11 @@ for k in keys[::-1]:
     inset = plt.axes([.2, .5, .2, .2])
     sdt = np.array(d['plan_sdt']).T
     sdt[0] -= sdt[0].min()
-    inset.plot(sdt[0], sdt[1])
+    inset.plot(sdt[0], sdt[1], color='green')
     inset.set_xlabel('$s$'); inset.set_ylabel('$d$')
     for i in 0, 4, 8, 12:
-        inset.axhline(i, linestyle='--' if i not in (0, 12) else '-')
+        edge = i not in (0, 12)
+        inset.axhline(i, linestyle='--' if edge else '-', color='gold' if not i else 'black')
     inset.set_yticks([0, 4, 8, 12])
     inset.set_xticks(np.linspace(sdt[0].min(), sdt[0].max(), 4))
     # inset.set_xticklabels(inset.get_xticklabels())#, fontsize=12)
@@ -187,7 +188,7 @@ for k in keys[::-1]:
     yl = inset.get_ylim()
     inset.set_ylim(max(14, yl[1]), min(-2, yl[0]))
     inset.set_xlim(sdt[0,0], sdt[0,-1])
-    inset.set_title('as planned\n(before x,y transform)', fontsize=16)
+    inset.set_title('as planned\n(before x,y transform)', fontsize=16, color='green')
 
 
     # Bounding boxes
@@ -218,8 +219,8 @@ for k in keys[::-1]:
     xl = ax.get_xlim()
     yl = ax.get_ylim()
     ax.plot(
-        hmap['x'], hmap['y'], 
-        color='yellow',
+        hmap['x'], hmap['y'],
+        color='gold',
         label='map centerline'
     )
 
