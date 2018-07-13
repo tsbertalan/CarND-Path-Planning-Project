@@ -168,7 +168,7 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
                 DT
         );
         plan_names.push_back(describe_plan(plan, current_speed, target_speed, DT));
-        plans.push_back(plan);
+        plans.push_back(std::move(plan));
     }
 
 

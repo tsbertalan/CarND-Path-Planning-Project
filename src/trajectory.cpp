@@ -134,28 +134,19 @@ void Trajectory::JMT_extend(
 
         // If we have two points, we can estimate the initial velocity.
         if (size() > 1) {
-            vector<double> S, D;
-            for (WorldPose p : poses) {
-                FrenetPose fp = transform.to_frenet(p);
-                S.push_back(fp.s);
-                D.push_back(fp.d);
-            }
-            spline::tk::spline s_spline, d_spline;
-            s_spline.set_points(times, S);
-            d_spline.set_points(times, D);
-
-            double tf = times[size() - 1];
-            vs0 = (s_spline(tf) - s_spline(tf - dt)) / dt;
-            vd0 = (d_spline(tf) - d_spline(tf - dt)) / dt;
+            FrenetPose fpm1 = transform.to_frenet(poses[size() - 2]);
+            double tm1 = times[size() - 2];
+            FrenetPose fp0 = transform.to_frenet(poses[size() - 1]);
+            double t0 = times[size() - 1];
+            vs0 = (fp0.s - fpm1.s) / (t0 - tm1);
+            vd0 = (fp0.d - fpm1.d) / (t0 - tm1);
 
             // If we have three points, we can estimate the initial acceleration.
             if (size() > 2) {
-
-                double vsm1 = (s_spline(tf - dt) - s_spline(tf - dt * 2)) / dt;
-//                double vdm1 = (d_spline(tf - dt) - d_spline(tf - dt * 2)) / dt;
-
+                FrenetPose fpm2 = transform.to_frenet(poses[size() - 3]);
+                double tm2 = times[size() - 3];
+                double vsm1 = (fpm1.s - fpm2.s) / (tm1 - tm2);
                 as0 = (vs0 - vsm1) / dt;
-//                ad0 = (vd0 - vdm1) / dt;
             }
         }
     }
