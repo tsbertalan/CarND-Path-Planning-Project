@@ -87,29 +87,14 @@ void Trajectory::extend(
 
 
     // Evaluate the Frenet JMT.
-    vector<double> coarse_s, coarse_d, coarse_t;
-    for (double t = t0; t <= t0 + text; t += 0.1) {
+    for (double t = t0 + dt; t <= t0 + text; t += dt) {
 
         vector<double> sd = sdpath_callable(t - t0);
 
-        coarse_s.push_back(sd[0]);
-        coarse_d.push_back(sd[1]);
-        coarse_t.push_back(t);
-    }
-
-    // Make a fine interpolant with a spline.
-    spline::tk::spline sp_s, sp_d;
-    sp_s.set_points(coarse_t, coarse_s);
-    sp_d.set_points(coarse_t, coarse_d);
-
-    // Use the interpolant.
-    for (double t = t0 + dt; t < t0 + text; t += dt) {
-
-        FrenetPose fp = {.s=sp_s(t), .d=sp_d(t), .yaw=0};
+        FrenetPose fp = {.s=sd[0], .d=sd[1], .yaw=0};
         sdtpath.push_back({fp.s, fp.d, t});
 
         WorldPose wp = transform.to_world(fp);
-
         poses.push_back(wp);
         times.push_back(t);
 

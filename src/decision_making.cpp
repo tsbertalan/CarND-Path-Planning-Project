@@ -214,12 +214,12 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     double lowest_cost = costs[best_plan];
     Trajectory plan = plans[best_plan];
 
-    if (plan_changes_goal(plan) || DEBUG)
+    if (plan_changes_goal(plan) || SHOW_ALL_PLANS || DEBUG)
         cout << "Chose plan " << best_plan << endl << "    " << plan_names[best_plan] << endl;
     CostDecision best_dec = decisions[best_plan];
 
     // Say why we chose.
-    if (plan_changes_goal(plan) || DEBUG)
+    if (plan_changes_goal(plan) || SHOW_ALL_PLANS || DEBUG)
         cout << "    " << declare_reasons(decisions, best_dec) << "." << endl;
 
     // Record the time that a lane switch was planned.

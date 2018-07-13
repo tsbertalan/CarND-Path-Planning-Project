@@ -21,8 +21,8 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     const double CRITICAL_DISTANCE_Y = WWARN_RADIUS;
     const double SCALE_DISTANCE_Y = 4;
 
-    const double FACTOR_ACCEL = 1. / 24;
-    const double FACTOR_JERK = 1. / 32;
+    const double FACTOR_ACCEL = 1. / 24.;
+    const double FACTOR_JERK = 1. / 96.;
 
     // If goal speed is too close to MAX_SPEED_CONSIDERED,
     // we'll be starved for fast-enough trajectories,
@@ -123,8 +123,6 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     cost_jerk /= num_jerk;
     cost_parts.push_back(cost_jerk * FACTOR_JERK);
     cost_names.push_back("jerk");
-
-
 
     //// Find the mean deviation from goal velocity; penalizing larger differences more.
     double cost_vdeviation = 0;
