@@ -71,8 +71,8 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     vector<double> xcdists;
     vector<Neighbor> lane_neighbors;
     for (auto n : neighbors) {
-        if (get_lane(n.current) == current_lane) {
-            CarPose cp = transform.to_car(n.current);
+        if (get_lane(n.current_fp) == current_lane) {
+            CarPose cp = transform.to_car(n.current_wp);
             lane_neighbors.push_back(n);
             xcdists.push_back(fabs(cp.x));
         }
@@ -81,17 +81,17 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
 
         long iminc = min_element(xcdists.begin(), xcdists.end()) - xcdists.begin();
         Neighbor closest = lane_neighbors[iminc];
-        CarPose closest_cp = transform.to_car(closest.current);
+        CarPose closest_cp = transform.to_car(closest.current_wp);
 
         if (
                 xcdists[iminc] < 40
                 and xcdists[iminc] > TAILGATE_BUFFER
                 and closest_cp.x > 0
-                and get_lane(closest.current) == current_lane
+                and get_lane(closest.current_fp) == current_lane
                 ) {
             // Generate a following trajectory.
             double target_speed = closest.speed();
-            int plan_target = get_lane(closest.current);
+            int plan_target = get_lane(closest.current_fp);
 
             Trajectory follow = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
 
@@ -143,18 +143,8 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
 
         int plan_target = uniform_random(0, 3);
-//        int plan_target = 0;
-
-//        double target_speeds[] = {10, 20, 30};
-//        double target_speed = target_speeds[uniform_random(0, 3)];
         double target_speed = uniform_random(MIN_SPEED_CONSIDERED, MAX_SPEED_CONSIDERED);
-//        double target_speed = 40 * MIPH_TO_MPS;
-
-//        double DTs[] = {.75, 1};
-//        double DT = DTs[uniform_random(0, 2)];
         double DT = uniform_random(MIN_DT, MAX_DT);
-//        double DT = .8;
-
         double DS = -1;
 
         Trajectory plan = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
@@ -312,7 +302,7 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
         for (int i = 0; i < plans[0].size(); i++) {
             double t0 = plans[0].times[0];
             double t = plans[0].times[i];
-            WorldPose other = n.future_position(t - t0, transform);
+            WorldPose other = n.future_position(t - t0);
             CarPose cp = transform.to_car(other);
             x.push_back(cp.x);
             y.push_back(cp.y);

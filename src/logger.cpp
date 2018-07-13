@@ -101,10 +101,10 @@ void PyLogger::operator()(std::string name, std::vector<Neighbor> neighbors, dou
     if(!logging) return;
     pyfile << name << " = [";
     for (auto n : neighbors) {
-        WorldPose p = n.current;
+        WorldPose p = n.current_wp;
         pyfile << "(" << n.id << "," << p.x << "," << p.y << "," << n.vx << "," << n.vy << ",";
         if(tproj > 0) {
-            WorldPose fp = n.future_position(tproj, transform);
+            WorldPose fp = n.future_position(tproj);
             pyfile << fp.x << "," << fp.y << ",";
         }
         pyfile << "),";

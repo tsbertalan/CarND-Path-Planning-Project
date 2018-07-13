@@ -95,7 +95,8 @@ int main() {
                         &lane,
                         &ref_vel,
                         &planner,
-                        &plot_window
+                        &plot_window,
+                        &transform
                 ](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                   uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
@@ -151,7 +152,7 @@ int main() {
                     vector<Neighbor> neighbors;
                     for (auto sf : sensor_fusion) {
                         //sf = id, x, y, vx, vy, s, d
-                        neighbors.push_back(Neighbor(sf[0], sf[1], sf[2], sf[3], sf[4]));
+                        neighbors.push_back(Neighbor(transform, sf[0], sf[1], sf[2], sf[3], sf[4]));
                     }
 
                     Trajectory new_trajectory = planner.make_plan(

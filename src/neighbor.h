@@ -8,16 +8,23 @@
 #include "coordinates.h"
 
 class Neighbor {
+private:
+    CoordinateTransformer &transform;
+    double vs, vd;
+
 public:
-    int id;
-    WorldPose current;
     double vx, vy;
+    int id;
+    WorldPose current_wp;
+    FrenetPose current_fp;
 
-    Neighbor(int id, const WorldPose &current, double vx, double vy);
+    Neighbor(CoordinateTransformer &transform, int id, const WorldPose &current, double vx, double vy);
 
-    Neighbor(int id, double x, double y, double vx, double vy);
+    Neighbor(CoordinateTransformer &transform, int id, double x, double y, double vx, double vy);
 
-    WorldPose future_position(double dt, CoordinateTransformer &transform);
+    WorldPose future_position(double dt);
+
+    FrenetPose future_position_frenet(double dt);
 
     double speed();
 };

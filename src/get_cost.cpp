@@ -58,17 +58,16 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
         i_neighbor++;
         double t0 = plan.times[0];
 
-        for (int i = 0; i < plan.size(); i++) {
-            double t = plan.times[i];
-            CarPose ego = transform.to_car(plan.poses[i]);
-            CarPose other = transform.to_car(neighbor.future_position(t - t0, transform));
-            double dx = fabs(ego.x - other.x);
-            double dy = fabs(ego.y - other.y);
+        for (int i = 0; i < plan.sdtpath.size(); i++) {
+            vector<double> ego_sdt = plan.sdtpath[i];
+            FrenetPose other = neighbor.future_position_frenet(ego_sdt[2] - t0);
+            double ds = fabs(ego_sdt[0] - other.s);
+            double dd = fabs(ego_sdt[1] - other.d);
 
             double cost;
 
-            cost = expit(dx, CRITICAL_DISTANCE_X, -SCALE_DISTANCE_X)
-                   * expit(dy, CRITICAL_DISTANCE_Y, -SCALE_DISTANCE_Y);
+            cost = expit(ds, CRITICAL_DISTANCE_X, -SCALE_DISTANCE_X)
+                   * expit(dd, CRITICAL_DISTANCE_Y, -SCALE_DISTANCE_Y);
             if (cost > cost_dist)
                 cost_dist = cost;
         }
