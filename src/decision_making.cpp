@@ -33,15 +33,10 @@ int Planner::get_lane(Trajectory plan, bool final) {
 
 
 Trajectory
-Planner::make_plan(
-        WorldPose current,
-        double current_speed,
-        Trajectory leftover,
-        vector<Neighbor> neighbors,
-        const double dt
-) {
+Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover, vector<Neighbor> neighbors,
+                   const double dt) {
 
-    pyfile << "data[" << now() << "] = dict(" << endl;
+
 
     // Prepare things.
     long start_planner_ms = now();
@@ -50,23 +45,25 @@ Planner::make_plan(
     transform.set_reference(current);
     current_lane = get_lane(current);
 
-
-    if(current_speed > 40)
-        cout << "Current speed seems rather high." << endl;
-
-
     vector<Trajectory> plans;
     vector<string> plan_names;
 
-    int NUM_PLANS = 64;
-    const bool SHOW_ALL_PLANS = false;
+    int NUM_PLANS = 200;
+    const bool SHOW_ALL_PLANS = true;
+    const bool LOGGING = false;
+    logger.set_status(LOGGING);
     const bool DEBUG = false;
-    double MAX_SPEED_CONSIDERED = 48 * MIPH_TO_MPS;
+    double MAX_SPEED_CONSIDERED = 49 * MIPH_TO_MPS;
     double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
     unsigned int PLAN_LENGTH = 1000;
-    double EXT_TIME = 2;
-    unsigned int NUM_REUSED = 8;
-    const double TAILGATE_BUFFER = 8;
+    double EXT_TIME = 3;
+    unsigned int NUM_REUSED = 32;
+    const double TAILGATE_BUFFER = 12;
+
+    const double MIN_DT = 1;
+    const double MAX_DT = 3;
+
+    logger.begin_item(now());
 
 
     // Work with neighbors.
@@ -85,9 +82,6 @@ Planner::make_plan(
         long iminc = min_element(xcdists.begin(), xcdists.end()) - xcdists.begin();
         Neighbor closest = lane_neighbors[iminc];
         CarPose closest_cp = transform.to_car(closest.current);
-        cout << "Closest-in-xc neighbor in same lane is #" << closest.id << " at " << xcdists[iminc] << "[m]";
-        cout << " (lane=" << get_lane(closest.current) << ", xc=" << closest_cp.x << ", yc=" << closest_cp.y << ")."
-             << endl;
 
         if (
                 xcdists[iminc] < 40
@@ -137,7 +131,6 @@ Planner::make_plan(
             oss << "follow_" << closest.id;
             plan_names.push_back(oss.str());
             plans.push_back(follow);
-            cout << "Added " << oss.str() << endl;
         } else {
             if (NUM_PLANS == 0)
                 NUM_PLANS = 32;
@@ -159,7 +152,7 @@ Planner::make_plan(
 
 //        double DTs[] = {.75, 1};
 //        double DT = DTs[uniform_random(0, 2)];
-        double DT = uniform_random(.75, 1.5);
+        double DT = uniform_random(MIN_DT, MAX_DT);
 //        double DT = .8;
 
         double DS = -1;
@@ -190,8 +183,10 @@ Planner::make_plan(
 
 
     // Evaluate costs.
-    vector<CostDecision> decisions;
-    vector<double> costs;
+    double costsa[plans.size()];
+    CostDecision decisionsa[plans.size()];
+
+    //#pragma omp parallel for
     for (int i = 0; i < plans.size(); i++) {
         Trajectory plan = plans[i];
         string planName = plan_names[i];
@@ -202,8 +197,15 @@ Planner::make_plan(
             label = oss.str();
         }
         CostDecision decision = get_cost(plan, neighbors, label, i == 0);
-        costs.push_back(decision.cost);
-        decisions.push_back(decision);
+        costsa[i] = decision.cost;
+        decisionsa[i] = decision;
+    }
+
+    vector<double> costs;
+    vector<CostDecision> decisions;
+    for(int i=0; i<plans.size(); i++) {
+        costs.push_back(costsa[i]);
+        decisions.push_back(decisionsa[i]);
     }
 
 
@@ -211,67 +213,14 @@ Planner::make_plan(
     int best_plan = argmin(costs);
     double lowest_cost = costs[best_plan];
     Trajectory plan = plans[best_plan];
-    cout << "Chose plan " << best_plan << endl << "    " << plan_names[best_plan] << endl;
+
+    if (plan_changes_goal(plan) || DEBUG)
+        cout << "Chose plan " << best_plan << endl << "    " << plan_names[best_plan] << endl;
     CostDecision best_dec = decisions[best_plan];
 
-    pyfile << "desc = '" << plan_names[best_plan] << "'," << endl;
-
-
-    // Print the plan.
-    Trajectory tjs[] = {leftover.subtrajectory(NUM_REUSED + 1, 0, dt), plan};
-
-    for(int i=0; i<2; i++) {
-        Trajectory tj = tjs[i];
-        string tag;
-        if(i)
-            tag = "";
-        else
-            tag = "_prev";
-
-        pyfile << "x" << tag << " = [";
-        for(WorldPose p : tj.poses)
-            pyfile << p.x << ",";
-        pyfile << "]," << endl;
-
-        pyfile << "y" << tag << " = [";
-        for(WorldPose p : tj.poses)
-            pyfile << p.y << ",";
-        pyfile << "]," << endl;
-
-        pyfile << "t" << tag << " = [";
-        for(double t : tj.times)
-            pyfile << t << ",";
-        pyfile << "]," << endl;
-
-        pyfile << "s" << tag << " = [";
-        for(WorldPose p : tj.poses) {
-            FrenetPose fp = transform.to_frenet(p);
-            pyfile << fp.s << ",";
-        }
-        pyfile << "]," << endl;
-
-        pyfile << "d" << tag << " = [";
-        for(WorldPose p : tj.poses) {
-            FrenetPose fp = transform.to_frenet(p);
-            pyfile << fp.d << ",";
-        }
-        pyfile << "]," << endl;
-    }
-
-    pyfile << "neighbors = [";
-    for(auto n : neighbors) {
-        WorldPose p = n.current;
-        pyfile << "(" << p.x << "," << p.y << "," << n.vx << "," << n.vy <<"),";
-    }
-    pyfile << "]," << endl;
-
-
-
-
-
     // Say why we chose.
-    cout << "    " << declare_reasons(decisions, best_dec) << "." << endl;
-
+    if (plan_changes_goal(plan) || DEBUG)
+        cout << "    " << declare_reasons(decisions, best_dec) << "." << endl;
 
     // Record the time that a lane switch was planned.
     if (plan_changes_goal(plan)) {
@@ -283,20 +232,35 @@ Planner::make_plan(
     if (DEBUG) show_map(plans, neighbors);
 
     FrenetPose fp = transform.to_frenet(current);
-    cout << "Frenet position: s=" << fp.s << ", d=" << fp.d << ".";
-    if (goal_lane != current_lane || plan_changes_goal(plan)) {
-        cout << " Goal: " << current_lane << "==>";
-        if (plan_changes_goal(plan))
-            cout << "(" << goal_lane << "->" << get_lane(plan) << ")";
-        else
-            cout << goal_lane;
+    if (DEBUG) {
+        cout << "Frenet position: s=" << fp.s << ", d=" << fp.d << ".";
+        if (goal_lane != current_lane || plan_changes_goal(plan)) {
+            cout << " Goal: " << current_lane << "==>";
+            if (plan_changes_goal(plan))
+                cout << "(" << goal_lane << "->" << get_lane(plan) << ")";
+            else
+                cout << goal_lane;
+        }
+        cout << endl;
     }
-    cout << endl;
 
     long end_planner_ms = now();
-    cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
+    if (plan_changes_goal(plan) || DEBUG)
+        cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
 
-    pyfile << ")" << endl;
+
+    // Log the plan.
+    if(LOGGING) logger("prev", "leftover", leftover.subtrajectory(NUM_REUSED + 1, 0, dt));
+    logger("plan", plan_names[best_plan], plan);
+    double tproj = 0;
+    if(plan.size() > 0)
+        tproj = plan.times[plan.size()-1] - plan.times[0];
+    logger("neighbors", neighbors, tproj);
+    logger("plan_sdt", plan.sdtpath);
+    if(LOGGING) logger("reasons", declare_reasons(decisions, best_dec));
+    logger("planner_time", end_planner_ms - start_planner_ms);
+
+    logger.end_item();
 
     goal_lane = get_lane(plan);
     return plan;
@@ -306,12 +270,10 @@ long Planner::now() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - construction_time;
 }
 
-Planner::Planner(CoordinateTransformer &transform) : transform(transform) {
+Planner::Planner(CoordinateTransformer &transform) : transform(transform), logger(PyLogger(transform)){
     construction_time = 0;
     construction_time = now();
     last_lane_change_time_ms = 0;
-    pyfile = ofstream("data.py");
-    pyfile << "data = {}" << endl;
 }
 
 void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
@@ -457,14 +419,14 @@ string Planner::declare_reasons(vector<CostDecision> &decisions, CostDecision &b
 
     if (best_dec.reason == primary_reason) {
         if (best_dec.reason == secondary_reason) {
-            oss << "despite " << primary_reason << "=" << pri_reason_val;
+            oss << "despite high " << primary_reason << "=" << pri_reason_val;
         } else {
-            oss << "because of " << secondary_reason << "=" << sec_reason_val;
-            oss << " and despite " << primary_reason << "=" << pri_reason_val;
+            oss << "because of low " << secondary_reason << "=" << sec_reason_val;
+            oss << " and despite high " << primary_reason << "=" << pri_reason_val;
         }
 
     } else {
-        oss << "because of " << primary_reason << "=" << pri_reason_val;
+        oss << "because of low " << primary_reason << "=" << pri_reason_val;
     }
     return oss.str();
 }

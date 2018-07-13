@@ -73,7 +73,7 @@ unsigned long Trajectory::size() {
 }
 
 void Trajectory::extend(
-        PolyTrajectory sdpath,
+        PolyTrajectory sdpath_callable,
         unsigned long max_length,
         double text,
         CoordinateTransformer &transform
@@ -87,30 +87,28 @@ void Trajectory::extend(
 
 
     // Evaluate the Frenet JMT.
-    vector<double> coarse_x, coarse_y, coarse_t;
-    for (double t = t0 + dt; t < t0 + text; t += 0.1) {
+    vector<double> coarse_s, coarse_d, coarse_t;
+    for (double t = t0; t <= t0 + text; t += 0.1) {
 
-        vector<double> sd = sdpath(t - t0);
-        FrenetPose pose = {.s=sd[0], .d=sd[1], .yaw=0};
-        WorldPose wp = transform.to_world(pose);
+        vector<double> sd = sdpath_callable(t - t0);
 
-//        poses.push_back(wp);
-//        times.push_back(t);
-
-        coarse_x.push_back(wp.x);
-        coarse_y.push_back(wp.y);
+        coarse_s.push_back(sd[0]);
+        coarse_d.push_back(sd[1]);
         coarse_t.push_back(t);
     }
 
     // Make a fine interpolant with a spline.
-    spline::tk::spline sp_x, sp_y, sp_yaw;
-    sp_x.set_points(coarse_t, coarse_x);
-    sp_y.set_points(coarse_t, coarse_y);
+    spline::tk::spline sp_s, sp_d;
+    sp_s.set_points(coarse_t, coarse_s);
+    sp_d.set_points(coarse_t, coarse_d);
 
     // Use the interpolant.
     for (double t = t0 + dt; t < t0 + text; t += dt) {
 
-        WorldPose wp = {.x=sp_x(t), .y=sp_y(t), .yaw=0};
+        FrenetPose fp = {.s=sp_s(t), .d=sp_d(t), .yaw=0};
+        sdtpath.push_back({fp.s, fp.d, t});
+
+        WorldPose wp = transform.to_world(fp);
 
         poses.push_back(wp);
         times.push_back(t);
@@ -190,6 +188,9 @@ void Trajectory::JMT_extend(
         Ds = (vs0 + final_speed) / 2 * DT;
     }
 
+    Ds_used = Ds;
+    DT_used = DT;
+
     FrenetPose leaf = {.s=initial_pose.s + Ds, .d=final_d, .yaw=0};
 
     double si, sdi, sddi, sf, sdf, sddf, di, ddi, dddi, df, ddf, dddf;
@@ -246,4 +247,12 @@ WorldPose Trajectory::suprapreantepenultimate() {
 
 bool Trajectory::empty() {
     return poses.empty();
+}
+
+double Trajectory::get_Ds_used() const {
+    return Ds_used;
+}
+
+double Trajectory::getDT_used() const {
+    return DT_used;
 }

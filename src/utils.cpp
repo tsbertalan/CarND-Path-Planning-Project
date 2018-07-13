@@ -2,6 +2,7 @@
 // Created by tsbertalan on 7/5/18.
 //
 #include "utils.h"
+using namespace std;
 
 long argmin(std::vector<double> v) {
     return min_element(v.begin(), v.end()) - v.begin();

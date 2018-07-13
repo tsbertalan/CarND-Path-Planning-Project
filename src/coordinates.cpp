@@ -145,10 +145,16 @@ int closest_waypoint(
     double closestLen = 100000; //large number
     int closestWaypoint = 0;
 
-    for (int i = 0; i < maps_x.size(); i++) {
+    double distances[maps_x.size()];
+    //#pragma omp simd
+    for(int i=0; i<maps_x.size(); i++) {
         double map_x = maps_x[i];
         double map_y = maps_y[i];
-        double dist = distance(x, y, map_x, map_y);
+        distances[i] = distance(x, y, map_x, map_y);
+    }
+
+    for (int i = 0; i < maps_x.size(); i++) {
+        double dist = distances[i];
         if (dist < closestLen) {
             closestLen = dist;
             closestWaypoint = i;
@@ -306,6 +312,16 @@ FrenetPose CoordinateTransformer::to_frenet(WorldPose from) {
     fp.d = sdy[1];
     fp.yaw = sdy[2];
     return fp;
+}
+
+std::vector<std::vector<double>> CoordinateTransformer::get_waypoints() {
+    std::vector<std::vector<double>> results;
+    results.push_back(map_waypoints_x);
+    results.push_back(map_waypoints_y);
+    results.push_back(map_waypoints_dx);
+    results.push_back(map_waypoints_dy);
+    results.push_back(map_waypoints_s);
+    return results;
 }
 
 

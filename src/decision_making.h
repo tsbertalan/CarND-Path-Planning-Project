@@ -20,6 +20,7 @@
 #include <chrono>
 
 #include "utils.h"
+#include "logger.h"
 // TODO: Move implementation-specific includes to implementation files.
 
 #include <fstream>
@@ -61,6 +62,8 @@ private:
     bool cross_lane_plan(Trajectory plan);
 
     long construction_time;
+
+    PyLogger logger;
 
     double uniform_random(double low = 0, double high = 1);
 

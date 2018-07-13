@@ -14,14 +14,22 @@
 
 class Trajectory {
 private:
-    double dt;
+    double dt, Ds_used, DT_used;
+public:
+    double get_Ds_used() const;
+
+    double getDT_used() const;
+
+private:
 
     void init(std::vector<double> X, std::vector<double> Y, double dt = .02);
 
-    void extend(PolyTrajectory sdpath, unsigned long max_length, double DT, CoordinateTransformer &transform);
+    void extend(PolyTrajectory sdpath_callable, unsigned long max_length, double DT, CoordinateTransformer &transform);
 
 public:
+
     std::vector<WorldPose> poses;
+    std::vector<std::vector<double>> sdtpath;
     std::vector<double> times;
 
     Trajectory(std::vector<double> X, std::vector<double> Y, double dt = .02);

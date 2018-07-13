@@ -93,7 +93,7 @@ private:
     std::vector<double> map_waypoints_dy;
     WorldPose car_reference;
     double max_s;
-    tk::spline spline_x, spline_y, spline_dx, spline_dy;
+    spline::tk::spline spline_x, spline_y, spline_dx, spline_dy;
 
 public:
     CoordinateTransformer();
@@ -111,6 +111,8 @@ public:
     FrenetPose to_frenet(CarPose from);
 
     FrenetPose to_frenet(WorldPose from);
+
+    std::vector<std::vector<double>> get_waypoints();
 
 };
 
