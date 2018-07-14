@@ -200,12 +200,15 @@ CoordinateTransformer::CoordinateTransformer() {
     // Load up map values for waypoint's x,y,s and d normalized normal vectors
 
     // Waypoint map to read from
-    const std::string map_file_ = "../data/highway_map_fine.csv";
+    const std::string map_file_ = "../data/highway_map.csv";
 
     // The max s value before wrapping around the track back to 0
     max_s = 6945.554;
 
     std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
+
+    std::vector<double> data_waypoints_x, data_waypoints_y, data_waypoints_s,
+            data_waypoints_dx, data_waypoints_dy;
 
     std::string line;
     while (getline(in_map_, line)) {
@@ -220,17 +223,33 @@ CoordinateTransformer::CoordinateTransformer() {
         iss >> s;
         iss >> d_x;
         iss >> d_y;
-        map_waypoints_x.push_back(x);
-        map_waypoints_y.push_back(y);
-        map_waypoints_s.push_back(s);
-        map_waypoints_dx.push_back(d_x);
-        map_waypoints_dy.push_back(d_y);
+        data_waypoints_x.push_back(x);
+        data_waypoints_y.push_back(y);
+        data_waypoints_s.push_back(s);
+        data_waypoints_dx.push_back(d_x);
+        data_waypoints_dy.push_back(d_y);
     }
 
-    spline_x.set_points(map_waypoints_s, map_waypoints_x);
-    spline_y.set_points(map_waypoints_s, map_waypoints_y);
-    spline_dx.set_points(map_waypoints_s, map_waypoints_dx);
-    spline_dy.set_points(map_waypoints_s, map_waypoints_dy);
+    // Add back in the first point to enforce that the spline is a loop.
+    data_waypoints_x.push_back(data_waypoints_x[0]);
+    data_waypoints_y.push_back(data_waypoints_y[0]);
+    data_waypoints_s.push_back(max_s);
+    data_waypoints_dx.push_back(data_waypoints_dx[0]);
+    data_waypoints_dy.push_back(data_waypoints_dy[0]);
+
+    spline_x.set_points(data_waypoints_s, data_waypoints_x);
+    spline_y.set_points(data_waypoints_s, data_waypoints_y);
+    spline_dx.set_points(data_waypoints_s, data_waypoints_dx);
+    spline_dy.set_points(data_waypoints_s, data_waypoints_dy);
+
+    // Evaluate the spline at a finer level to make a more detailed "map".
+    for (double s = 0; s < max_s; s += 1.0) {
+        map_waypoints_x.push_back(spline_x(s));
+        map_waypoints_y.push_back(spline_y(s));
+        map_waypoints_dx.push_back(spline_dx(s));
+        map_waypoints_dy.push_back(spline_dy(s));
+        map_waypoints_s.push_back(s);
+    }
 }
 
 
