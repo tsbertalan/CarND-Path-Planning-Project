@@ -7,31 +7,6 @@
 using namespace std;
 using namespace std::chrono;
 
-int Planner::get_lane(double d) {
-    if (d < 4)
-        return 0;
-    else if (d < 8)
-        return 1;
-    else
-        return 2;
-}
-
-int Planner::get_lane(FrenetPose fp) {
-    return get_lane(fp.d);
-}
-
-int Planner::get_lane(WorldPose wp) {
-    return get_lane(transform.to_frenet(wp));
-}
-
-int Planner::get_lane(Trajectory plan, bool final) {
-    if (final)
-        return get_lane(plan.ultimate());
-    else
-        return get_lane(plan.initial());
-}
-
-
 Trajectory
 Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover, vector<Neighbor> neighbors,
                    const double dt) {
@@ -418,4 +393,29 @@ string Planner::declare_reasons(vector<CostDecision> &decisions, CostDecision &b
         oss << "because of low " << primary_reason << "=" << pri_reason_val;
     }
     return oss.str();
+}
+
+
+int Planner::get_lane(double d) {
+    if (d < 4)
+        return 0;
+    else if (d < 8)
+        return 1;
+    else
+        return 2;
+}
+
+int Planner::get_lane(FrenetPose fp) {
+    return get_lane(fp.d);
+}
+
+int Planner::get_lane(WorldPose wp) {
+    return get_lane(transform.to_frenet(wp));
+}
+
+int Planner::get_lane(Trajectory plan, bool final) {
+    if (final)
+        return get_lane(plan.ultimate());
+    else
+        return get_lane(plan.initial());
 }
