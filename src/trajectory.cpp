@@ -85,7 +85,6 @@ void Trajectory::extend(
         t0 = 0;
     }
 
-
     // Evaluate the Frenet JMT.
     for (double t = t0 + dt; t <= t0 + text; t += dt) {
 
@@ -130,23 +129,27 @@ void Trajectory::JMT_extend(
     double ad0 = 0;
 
     if (size() > 0) {
-        initial_pose = transform.to_frenet(ultimate());
+        initial_pose = transform.to_frenet(poses[size() - 1]);
+        double t0 = times[size() - 1];
+        FrenetPose fp0 = initial_pose;
 
         // If we have two points, we can estimate the initial velocity.
         if (size() > 1) {
-            FrenetPose fpm1 = transform.to_frenet(poses[size() - 2]);
             double tm1 = times[size() - 2];
-            FrenetPose fp0 = transform.to_frenet(poses[size() - 1]);
-            double t0 = times[size() - 1];
-            vs0 = (fp0.s - fpm1.s) / (t0 - tm1);
-            vd0 = (fp0.d - fpm1.d) / (t0 - tm1);
 
-            // If we have three points, we can estimate the initial acceleration.
-            if (size() > 2) {
-                FrenetPose fpm2 = transform.to_frenet(poses[size() - 3]);
-                double tm2 = times[size() - 3];
-                double vsm1 = (fpm1.s - fpm2.s) / (tm1 - tm2);
-                as0 = (vs0 - vsm1) / dt;
+            // Guard against division by zero.
+            if(t0 != tm1) {
+                FrenetPose fpm1 = transform.to_frenet(poses[size() - 2]);
+                vs0 = (fp0.s - fpm1.s) / (t0 - tm1);
+                vd0 = (fp0.d - fpm1.d) / (t0 - tm1);
+
+                // If we have three points, we can estimate the initial acceleration.
+                if (size() > 2) {
+                    FrenetPose fpm2 = transform.to_frenet(poses[size() - 3]);
+                    double tm2 = times[size() - 3];
+                    double vsm1 = (fpm1.s - fpm2.s) / (tm1 - tm2);
+                    as0 = (vs0 - vsm1) / dt;
+                }
             }
         }
     }

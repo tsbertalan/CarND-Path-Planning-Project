@@ -15,6 +15,7 @@
 class Trajectory {
 private:
     double dt, Ds_used, DT_used;
+
 public:
     double get_Ds_used() const;
 
