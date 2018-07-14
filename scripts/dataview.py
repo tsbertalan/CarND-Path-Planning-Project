@@ -146,11 +146,11 @@ for k in keys[::-1]:
     assert (np.array(y[:len(yleftover)]) - yleftover == 0).all()
     
     if SHOW_PLANS:
-        x = x[len(xleftover):]
-        y = y[len(yleftover):]
+        x_plan = x[len(xleftover):]
+        y_plan = y[len(yleftover):]
 
         ax.plot(
-            x, y,
+            x_plan, y_plan,
             color='black', alpha=.5, linestyle='-', marker='o', markersize=1,
             label='new plan' if dolabel1 else None,
         )
@@ -191,6 +191,96 @@ for k in keys[::-1]:
     inset.set_title('as planned\n(before x,y transform)', fontsize=16, color='green')
 
 
+    # Calculate velocity, accel, and jerk.
+    D = np.diff
+
+    i1 = 28
+    i2 = 40
+
+    i1 = 7
+    i2 = 15
+    
+    i1 = 0
+    i2 = -1
+
+    # i1 = 38
+
+    x = d['plan']['x'][i1:i2]
+    y = d['plan']['y'][i1:i2]
+    t = d['plan']['t'][i1:i2]
+    xname, yname = 'x', 'y'
+
+
+    # sdt_prev = np.array(d['prev_sdt']).T
+    # sdt = np.array(d['plan_sdt']).T
+    # SDT = np.hstack((sdt_prev, sdt))
+    # x = SDT[0]
+    # y = SDT[1]
+    # t = SDT[2]
+    # xname, yname = 's', 'd'
+
+    tplot = np.arange(len(t))
+
+
+    # Inset plot for raw x and y values
+    inset = plt.axes([.7, .6, .2, .2])
+    inset.set_xlabel('$i_t$')
+    inset.plot(tplot, x, color='black')#, marker='o')
+    inset.set_ylabel('$%s$' % xname)
+    inset2 = inset.twinx()
+    inset2.plot(tplot, y, color='red')#, marker='o')
+    inset2.tick_params(axis='y', colors='red')
+    inset2.set_ylabel('$%s$' % yname, color='red')
+    inset.grid(False)
+    inset2.grid(False)
+    inset.set_xlim(min(tplot), max(tplot))
+
+    if len(d['prev']['t']) > 0: inset.axvline(len(d['prev']['t'])-1, color='purple', label='last previous point')
+    inset.legend(loc='best')
+
+    # Inset plot for split x and y velocities
+    inset = plt.axes([.7, .4, .2, .2])
+    dt = D(t)
+    dx = D(x)
+    dy = D(y)
+    print(dx)
+    inset.set_xlabel('$i_t$')
+    inset.plot(tplot[1:], dx/dt, color='black')
+    inset.set_ylabel(r'$\dot %s$ [$m/s$]' % xname)
+    inset2 = inset.twinx()
+    inset2.plot(tplot[1:], dy/dt, color='red')
+    inset2.tick_params(axis='y', colors='red')
+    inset2.set_ylabel(r'$\dot %s$ [$m/s$]' % yname, color='red')
+    inset.grid(False)
+    inset2.grid(False)
+    inset.set_xlim(min(tplot), max(tplot))
+    if len(d['prev']['t']) > 0: inset.axvline(len(d['prev']['t'])-1, color='purple', label='last previous point')
+
+    # Inset plot for acceleration and jerk profiles
+    inset = plt.axes([.7, .2, .2, .2])
+
+    a_x = D(dx/dt) / dt[:-1]
+    a_y = D(dy/dt) / dt[:-1]
+
+    a = np.sqrt(a_x**2 + a_y**2)
+    jerk = D(a) / dt[:-2]
+
+    inset.set_xlabel('$i_t$')
+
+    inset.plot(tplot[2:], a, color='black')
+    inset.set_ylabel('$||$acceleration$||$ [$m/s^2$]')
+
+    inset2 = inset.twinx()
+    inset2.plot(tplot[3:], jerk, color='red')
+    inset2.tick_params(axis='y', colors='red')
+    inset2.set_ylabel('jerk [$m/s^3$]', color='red')
+
+    inset.grid(False)
+    inset2.grid(False)
+    inset.set_xlim(min(tplot), max(tplot))
+    if len(d['prev']['t']) > 0: inset.axvline(len(d['prev']['t'])-1, color='purple', label='last previous point')
+
+
     # Bounding boxes
     if len(xleftover) > 0:
         xcar = xleftover[0]
@@ -211,17 +301,18 @@ for k in keys[::-1]:
         nid, nx, ny, nvx, nvy = neighbor[:5]
         draw_box(ax, nx, ny, theta=np.arctan2(nvy, nvx), color='navy')
         ax.text(nx-1, ny-1, "#%d" % nid, fontsize=12)
-        if len(neighbor) > 5:
-            nxend, nyend = neighbor[5], neighbor[6]
-            ax.plot([nx, nxend], [ny, nyend], color='navy', linestyle='-', alpha=.75)
+        # if len(neighbor) > 5:
+        #     nxend, nyend = neighbor[5], neighbor[6]
+        #     ax.plot([nx, nxend], [ny, nyend], color='navy', linestyle='-', alpha=.75)
 
     # Global map things.
     xl = ax.get_xlim()
     yl = ax.get_ylim()
     ax.plot(
-        hmap['x'], hmap['y'],
+        cppdata.data['map']['map_x'], cppdata.data['map']['map_y'],
         color='gold',
-        label='map centerline'
+        label='map centerline',
+        marker='o', markersize=2,
     )
 
     lines = np.array(cppdata.data['map']['map_lines'])
@@ -248,7 +339,7 @@ for k in keys[::-1]:
     ax.set_ylabel('$y$ [m] (world coordinates)')
     ax.grid(False)
     ax.set_aspect('equal', 'datalim')
-    ax.legend(loc='lower right')
+    ax.legend(loc='lower left')
     fig.suptitle(
         '"%s"' % d['plan']['desc'],
         fontsize=32,
