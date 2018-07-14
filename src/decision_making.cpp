@@ -28,8 +28,10 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     const bool LOGGING = true;
     logger.set_status(LOGGING);
     const bool DEBUG = false;
-    double MAX_SPEED_CONSIDERED = 49 * MIPH_TO_MPS;
-    double MIN_SPEED_CONSIDERED = 5 * MIPH_TO_MPS;
+    double MAX_SPEED_DIFFERENCE = 10;
+    double MIN_SPEED_DIFFERENCE = -10;
+    double MIN_TARGET_SPEED = 1;
+    double MAX_TARGET_SPEED = 50;
     unsigned int PLAN_LENGTH = 1000;
     double EXT_TIME = 4;
     unsigned int NUM_REUSED = 32;
@@ -118,7 +120,9 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
 
         int plan_target = uniform_random(0, 3);
-        double target_speed = uniform_random(MIN_SPEED_CONSIDERED, MAX_SPEED_CONSIDERED);
+        double speed_difference = uniform_random(MIN_SPEED_DIFFERENCE, MAX_SPEED_DIFFERENCE);
+        double target_speed = min(MAX_TARGET_SPEED, max(MIN_TARGET_SPEED,
+                current_speed + speed_difference));
         double DT = uniform_random(MIN_DT, MAX_DT);
         double DS = -1;
 
