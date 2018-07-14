@@ -6,6 +6,7 @@ using namespace std;
 
 PyLogger::PyLogger(CoordinateTransformer &transform, string filePath) : transform(transform) {
     pyfile = ofstream("data.py");
+    pyfile.precision(10);
     logging = true;
 
     pyfile << "data = {}" << std::endl;
