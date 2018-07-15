@@ -5,8 +5,7 @@
 #include "decision_making.h"
 
 
-
-CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, string label, bool heading) {
+CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, string label, bool heading) {
 
     const double FACTOR_DISTANCE = 1;
 
@@ -23,6 +22,12 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
 
     const double FACTOR_ACCEL = 1. / 24.;
     const double FACTOR_JERK = 1. / 96.;
+
+    const double FACTOR_ACCEL_EXCESS = 1;
+    const double CRITICAL_ACCEL_EXCESS = 10;
+
+    const double FACTOR_JERK_EXCESS = 1;
+    const double CRITICAL_JERK_EXCESS = 10;
 
     // If goal speed is too close to MAX_SPEED_CONSIDERED,
     // we'll be starved for fast-enough trajectories,
@@ -56,13 +61,13 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     int i_neighbor = -1;
     for (auto neighbor : neighbors) {
         i_neighbor++;
-        double t0 = plan.times[0];
 
-        for (int i = 0; i < plan.sdtpath.size(); i++) {
-            vector<double> ego_sdt = plan.sdtpath[i];
-            FrenetPose other = neighbor.future_position_frenet(ego_sdt[2] - t0);
-            double ds = fabs(ego_sdt[0] - other.s);
-            double dd = fabs(ego_sdt[1] - other.d);
+        for (double t = 0; t <= plan.t_max(); t += .02) {
+            double s = plan.s(t);
+            double d = plan.d(t);
+            FrenetPose other = neighbor.future_position_frenet(t);
+            double ds = fabs(s - other.s);
+            double dd = fabs(d - other.d);
 
             double cost;
 
@@ -82,37 +87,13 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     int num_accel = 0;
     double cost_jerk = 0;
     int num_jerk = 0;
-    for (int i_t = 0; i_t < plan.size(); i_t++) {
-        if(i_t >= 0) {
-            WorldPose pose3 = plan.poses[i_t - 0];
-            double t3 = plan.times[i_t - 0];
-
-            if(i_t >= 1) {
-                WorldPose pose2 = plan.poses[i_t - 1];
-                double t2 = plan.times[i_t - 1];
-                double v2 = get_world_dist(pose3, pose2) / (t3 - t2);
-
-                if(i_t >= 2) {
-                    WorldPose pose1 = plan.poses[i_t - 2];
-                    double t1 = plan.times[i_t - 2];
-                    double v1 = get_world_dist(pose2, pose1) / (t2 - t1);
-                    double acceleration_1 = fabs((v2 - v1) / (t2 - t1));
-                    if (acceleration_1 > cost_accel)
-                        cost_accel = acceleration_1;
-
-                    if(i_t >= 3) {
-                        WorldPose pose0 = plan.poses[i_t - 3];
-                        double t0 = plan.times[i_t - 3];
-
-                        double v0 = get_world_dist(pose1, pose0) / (t1 - t0);
-                        double acceleration_0 = fabs((v1 - v0) / (t1 - t0));
-                        double jerk_0 = fabs((acceleration_1 - acceleration_0) / (t1 - t0));
-                        if (jerk_0 > cost_jerk)
-                            cost_jerk = jerk_0;
-                    }
-                }
-            }
-        }
+    for (double t = 0; t <= plan.t_max(); t += .02) {
+        double accel = plan.accel(t);
+        if (accel > cost_accel)
+            cost_accel = accel;
+        double jerk = plan.jerk(t);
+        if (jerk > cost_jerk)
+            cost_jerk = jerk;
     }
 
     cost_parts.push_back(cost_accel * FACTOR_ACCEL);
@@ -121,24 +102,24 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     cost_parts.push_back(cost_jerk * FACTOR_JERK);
     cost_names.push_back("jerk");
 
+
+    // Put a pseudo-boolean cost on trajectories whose average accel exceeds
+
+
     //// Find the mean deviation from goal velocity; penalizing larger differences more.
     double cost_vdeviation = 0;
-    for (int i_t = 1; i_t < plan.size(); i_t++) {
-        double dt = plan.times[i_t] - plan.times[i_t - 1];
-        WorldPose p1 = plan.poses[i_t - 1];
-        WorldPose p2 = plan.poses[i_t - 0];
-        double dxdt = (p2.x - p1.x) / dt;
-        double dydt = (p2.y - p1.y) / dt;
-        double speed = sqrt(dxdt * dxdt + dydt * dydt);
-        //double speed = get_world_dist(p1, p2) / fabs(dt);
-        double vdev = speed - GOAL_SPEED;
+    int count = 0;
+    for (double t = 0; t <= plan.t_max(); t += .02) {
+        count++;
+
+        double vdev = plan.speed(t) - GOAL_SPEED;
         if (vdev > 0)
             vdev *= FACTOR_POSITIVE_SPEED_DEVIATION;
         else
             vdev *= -FACTOR_NEGATIVE_SPEED_DEVIATION;
         cost_vdeviation += vdev;
     }
-    cost_vdeviation /= plan.size() - 1;
+    cost_vdeviation /= count;
     cost_parts.push_back(cost_vdeviation * FACTOR_VDEV);
     cost_names.push_back("vdev");
 
@@ -168,9 +149,8 @@ CostDecision Planner::get_cost(Trajectory plan, vector<Neighbor> neighbors, stri
     const double cinf = 10;
     const double sl1 = c1 / 2;
     const double sl2 = cinf / 2;
-    for(int i_t=1; i_t < plan.sdtpath.size(); i_t++){
-        vector<double> sdt = plan.sdtpath[i_t];
-        double d = sdt[1];
+    for (double t = 0; t <= plan.t_max(); t += .02) {
+        double d = plan.d(t);
         if(d < 0)
             cost_out_of_lane += -sl2 * d + c1;
         else if(d < 2)

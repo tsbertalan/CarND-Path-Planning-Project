@@ -11,55 +11,36 @@
 #include <vector>
 
 
-class PolyPath {
+class PolyPath1D {
 private:
     Eigen::VectorXd coefficients;
-    double upper_bound_slope;
-    double upper_bound_value;
-
-    double call(double x);
 
 public:
-    double upper_bound;
+    PolyPath1D(Eigen::VectorXd coefficients);
 
-    PolyPath(Eigen::VectorXd coefficients, double upper_bound);
+    double operator()(double x);
 
-    double operator()(double x, bool threshold = true);
-
-    std::vector<double> operator()(std::vector<double> X);
+    double derivative(double x, int order = 1);
 };
 
 
 class PolyTrajectory {
-private:
-    std::vector<PolyPath> paths;
-
 public:
-    PolyTrajectory(std::vector<PolyPath> paths);
+
+    std::vector<PolyPath1D> paths;
+
+    PolyTrajectory(std::vector<PolyPath1D> paths);
 
     std::vector<double> operator()(double t);
-
-//    std::vector<std::vector<double>> operator()(std::vector<double> T) {
-//        std::vector<std::vector<double>> states;
-//        for(double t : T) {
-//            states.push_back(
-//                    (*this)(t)
-//            );
-//        }
-//        return states;
-//    }
-
-    std::vector<std::vector<double>> operator()(std::vector<double> T);
-
 };
 
 
-PolyPath JMT_single_channel(double yi, double ydi, double yddi, double yf, double ydf, double yddf, double T);
+PolyPath1D JMT_single_channel(double yi, double ydi, double yddi, double yf, double ydf, double yddf, double T);
 
 
 PolyTrajectory JMT(
-        double si, double sdi, double sddi, double sf, double sdf, double sddf,
-        double di, double ddi, double dddi, double df, double ddf, double dddf,
+        double si, double spi, double sddi, double sf, double sdf, double sddf,
+        double di, double dpi, double dppi, double df, double dpf, double dppf,
         double T);
 
 #endif //PATH_PLANNING_JMT_H

@@ -139,34 +139,41 @@ int main() {
                     double car_speed = j[1]["speed"];
 
                     // Previous path data given to the Planner
-                    auto previous_path_x = j[1]["previous_path_x"];
-                    auto previous_path_y = j[1]["previous_path_y"];
-                    // Previous path's end s and d values
-                    double end_path_s = j[1]["end_path_s"];
-                    double end_path_d = j[1]["end_path_d"];
+                    int num_unused = j[1]["previous_path_x"].size();
 
-                    // Sensor Fusion Data, a list of all other cars on the same side of the road.
-                    auto sensor_fusion = j[1]["sensor_fusion"];
+                    // Consider whether we actually want to replan.
+                    vector<double> next_x_vals, next_y_vals;
+                    if (num_unused > 90) {
+                        for (int i_t = 0; i_t < num_unused; i_t++) {
+                            next_x_vals.push_back(j[1]["previous_path_x"][i_t]);
+                            next_y_vals.push_back(j[1]["previous_path_y"][i_t]);
+                        }
 
-                    Trajectory previous_trajectory(previous_path_x, previous_path_y);
-                    vector<Neighbor> neighbors;
-                    for (auto sf : sensor_fusion) {
-                        //sf = id, x, y, vx, vy, s, d
-                        neighbors.push_back(Neighbor(transform, sf[0], sf[1], sf[2], sf[3], sf[4]));
+                    } else {
+
+                        // Sensor Fusion Data, a list of all other cars on the same side of the road.
+                        auto sensor_fusion = j[1]["sensor_fusion"];
+
+                        vector<Neighbor> neighbors;
+                        for (auto sf : sensor_fusion) {
+                            //sf = id, x, y, vx, vy, s, d
+                            neighbors.push_back(Neighbor(transform, sf[0], sf[1], sf[2], sf[3], sf[4]));
+                        }
+
+                        vector<vector<double>> next_xy_vals = planner.make_plan(
+                                {.x=car_x, .y=car_y, .yaw=car_yaw},
+                                car_speed,
+                                num_unused,
+                                neighbors
+                        );
+
+                        next_x_vals = next_xy_vals[0];
+                        next_y_vals = next_xy_vals[1];
                     }
 
-                    Trajectory new_trajectory = planner.make_plan(
-                            {.x=car_x, .y=car_y, .yaw=car_yaw},
-                            car_speed,
-                            previous_trajectory,
-                            neighbors
-                    );
-
-                    vector<vector<double>> next_xy_vals = new_trajectory.decompose();
-
                     json msgJson;
-                    msgJson["next_x"] = next_xy_vals[0];
-                    msgJson["next_y"] = next_xy_vals[1];
+                    msgJson["next_x"] = next_x_vals;
+                    msgJson["next_y"] = next_y_vals;
 
                     // Send.
                     auto msg = "42[\"control\"," + msgJson.dump() + "]";

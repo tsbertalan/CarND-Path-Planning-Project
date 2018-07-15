@@ -44,6 +44,8 @@ private:
     int current_lane = 0;
     int goal_lane = 0;
     ofstream pyfile;
+    Trajectory last_plan;
+    int last_plan_length;
 
 public:
     int getCurrent_lane() const;
@@ -59,11 +61,11 @@ private:
 
     int get_lane(WorldPose wp);
 
-    bool cross_lane_plan(Trajectory plan);
+    bool cross_lane_plan(Trajectory &plan);
 
     long construction_time;
 
-    PyLogger logger;
+    PyLogger log;
 
     double uniform_random(double low = 0, double high = 1);
 
@@ -73,25 +75,24 @@ private:
 
 public:
     CoordinateTransformer transform;
-    // m/s, NOT mph
 
     Planner(CoordinateTransformer &transform);
 
-    Trajectory make_plan(
+    vector<vector<double>> make_plan(
             WorldPose current,
             double current_speed,
-            Trajectory leftover,
+            int num_unused,
             vector<Neighbor> neighbors,
             const double dt = .02
     );
 
-    void show_map(vector<Trajectory> plans, vector<Neighbor> neighbors);
+    void show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors);
 
-    CostDecision get_cost(Trajectory plan, vector<Neighbor> neighbors, string label = "", bool heading = false);
+    CostDecision get_cost(Trajectory &plan, vector<Neighbor> neighbors, string label = "", bool heading = false);
 
-    bool plan_changes_goal(Trajectory plan);
+    bool plan_changes_goal(Trajectory &plan);
 
-    int get_lane(Trajectory plan, bool final = true);
+    int get_lane(Trajectory &plan, bool final = true);
 
     string describe_plan(Trajectory &plan, double current_speed, double target_speed, double DT);
 

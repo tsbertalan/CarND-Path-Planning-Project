@@ -7,10 +7,9 @@
 using namespace std;
 using namespace std::chrono;
 
-Trajectory
-Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover, vector<Neighbor> neighbors,
+vector<vector<double>>
+Planner::make_plan(WorldPose current, double current_speed, int num_unused, vector<Neighbor> neighbors,
                    const double dt) {
-
 
 
     // Prepare things.
@@ -26,126 +25,67 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     int NUM_PLANS = 200;
     const bool SHOW_ALL_PLANS = false;
     const bool LOGGING = true;
-    logger.set_status(LOGGING);
+    log.set_status(LOGGING);
     const bool DEBUG = false;
     double MAX_SPEED_DIFFERENCE = 10;
     double MIN_SPEED_DIFFERENCE = -10;
     double MIN_TARGET_SPEED = 1;
     double MAX_TARGET_SPEED = 50;
-    unsigned int PLAN_LENGTH = 1000;
     double EXT_TIME = 4;
-    unsigned int NUM_REUSED = 32;
+    unsigned int NUM_REUSED = 4;
     const double TAILGATE_BUFFER = 12;
 
     const double MIN_DT = 2;
     const double MAX_DT = 3;
 
-    logger.begin_item(now());
+    double t_reuse = .02 * (last_plan_length - num_unused);
+    double t_replan = t_reuse + NUM_REUSED * .02;
+    if (last_plan.t_max() < t_replan)
+        t_replan = last_plan.t_max();
 
+//    // Consider whether we actually want to replan.
+//    if(num_unused > 90) {
+//        cout << " === " << endl;
+//        cout << t_reuse << "," << t_replan << "," << last_plan.t_max() << endl;
+//        cout << t_reuse/.02 << "," << t_replan / .02 << endl;
+//        last_plan.cut_start(t_reuse, last_plan.t_max());
+//        auto next_xy_vals = last_plan.decompose();
+//        last_plan_length = next_xy_vals[0].size();
+//        return next_xy_vals;
+//    }
 
-    // Work with neighbors.
-    // Describe the neighbors.
-    vector<double> xcdists;
-    vector<Neighbor> lane_neighbors;
-    for (auto n : neighbors) {
-        if (get_lane(n.current_fp) == current_lane) {
-            CarPose cp = transform.to_car(n.current_wp);
-            lane_neighbors.push_back(n);
-            xcdists.push_back(fabs(cp.x));
-        }
-    }
-    if (!lane_neighbors.empty()) {
-
-        long iminc = min_element(xcdists.begin(), xcdists.end()) - xcdists.begin();
-        Neighbor closest = lane_neighbors[iminc];
-        CarPose closest_cp = transform.to_car(closest.current_wp);
-
-        if (
-                xcdists[iminc] < 40
-                and xcdists[iminc] > TAILGATE_BUFFER
-                and closest_cp.x > 0
-                and get_lane(closest.current_fp) == current_lane
-                ) {
-            // Generate a following trajectory.
-            double target_speed = closest.speed();
-            int plan_target = get_lane(closest.current_fp);
-
-            Trajectory follow = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
-
-            WorldPose ultimate;
-            if (leftover.empty())
-                ultimate = current;
-            else
-                ultimate = leftover.ultimate();
-            double lead_distance = max(
-                    closest_cp.x
-                    - transform.to_car(ultimate).x, 1.
-            );
-            if (lead_distance > TAILGATE_BUFFER) {
-                lead_distance -= TAILGATE_BUFFER;
-            }
-            double DT = 2 * lead_distance / (current_speed + target_speed);
-            double tmax;
-            if (EXT_TIME != -1) {
-                tmax = EXT_TIME;
-            } else {
-                tmax = DT;
-                if (!follow.empty())
-                    tmax += follow.times[follow.size() - 1];
-            }
-            follow.JMT_extend(
-                    transform,
-                    target_speed,
-                    PLAN_LENGTH,
-                    current,
-                    current_speed,
-                    tmax,
-                    plan_target * 4 + 2,
-                    -1,
-                    DT
-            );
-            ostringstream oss;
-            oss << "follow_" << closest.id;
-            plan_names.push_back(oss.str());
-            plans.push_back(follow);
-        } else {
-            if (NUM_PLANS == 0)
-                NUM_PLANS = 32;
-        }
-
-    }
+    log.begin_item(now());
 
 
     // Generate multiple plans.
-    for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
+    FrenetPose current_frenet = transform.to_frenet(current);
+//    for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
+    for (int iplan = 0; iplan < 1; iplan++) {
 
-        int plan_target = uniform_random(0, 3);
-        double speed_difference = uniform_random(MIN_SPEED_DIFFERENCE, MAX_SPEED_DIFFERENCE);
-        double target_speed = min(MAX_TARGET_SPEED, max(MIN_TARGET_SPEED,
-                current_speed + speed_difference));
-        double DT = uniform_random(MIN_DT, MAX_DT);
-        double DS = -1;
+//        int plan_target = uniform_random(0, 3);
+//        double speed_difference = uniform_random(MIN_SPEED_DIFFERENCE, MAX_SPEED_DIFFERENCE);
+//        double target_speed = min(MAX_TARGET_SPEED, max(MIN_TARGET_SPEED,
+//                current_speed + speed_difference));
+//        double DT = uniform_random(MIN_DT, MAX_DT);
+        int plan_target = 1;
+        double target_speed = 42 * MIPH_TO_MPS;
+        double DT = 2;
 
-        Trajectory plan = leftover.subtrajectory(NUM_REUSED + 1, 0, dt);
-        double tmax;
-        if (EXT_TIME != -1) {
-            tmax = EXT_TIME;
-        } else {
-            tmax = DT;
-            if (!plan.empty())
-                tmax += plan.times[plan.size() - 1];
-        }
-        plan.JMT_extend(
-                transform,
+
+        State s_end = {.y=(current_speed + target_speed) / 2 * DT, .yp=target_speed, .ypp=0};
+        State d_end = {.y=plan_target * 4. + 2., .yp=0, .ypp=0};
+
+
+        Trajectory plan = last_plan.generate_extension(
+                current_frenet,
+                t_reuse,
+                t_replan,
+                DT,
+                -1,
                 target_speed,
-                PLAN_LENGTH,
-                current,
-                current_speed,
-                tmax,
-                plan_target * 4 + 2,
-                DS,
-                DT
+                plan_target * 4 + 2
         );
+
         plan_names.push_back(describe_plan(plan, current_speed, target_speed, DT));
         plans.push_back(std::move(plan));
     }
@@ -182,6 +122,7 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
     int best_plan = argmin(costs);
     double lowest_cost = costs[best_plan];
     Trajectory plan = plans[best_plan];
+    last_plan = plan;
 
     if (plan_changes_goal(plan) || SHOW_ALL_PLANS || DEBUG)
         cout << "Chose plan " << best_plan << endl << "    " << plan_names[best_plan] << endl;
@@ -199,54 +140,62 @@ Planner::make_plan(WorldPose current, double current_speed, Trajectory leftover,
 
     if (DEBUG) show_map(plans, neighbors);
 
-    FrenetPose fp = transform.to_frenet(current);
-    if (DEBUG) {
-        cout << "Frenet position: s=" << fp.s << ", d=" << fp.d << ".";
-        if (goal_lane != current_lane || plan_changes_goal(plan)) {
-            cout << " Goal: " << current_lane << "==>";
-            if (plan_changes_goal(plan))
-                cout << "(" << goal_lane << "->" << get_lane(plan) << ")";
-            else
-                cout << goal_lane;
-        }
-        cout << endl;
-    }
-
     long end_planner_ms = now();
-    if (plan_changes_goal(plan) || DEBUG)
+//    if (plan_changes_goal(plan) || DEBUG)
         cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
 
 
     // Log the plan.
-    if(LOGGING) logger("prev", "leftover", leftover.subtrajectory(NUM_REUSED + 1, 0, dt));
-    logger("plan", plan_names[best_plan], plan);
-    double tproj = 0;
-    if(plan.size() > 0)
-        tproj = plan.times[plan.size()-1] - plan.times[0];
-    logger("neighbors", neighbors, tproj);
-    logger("plan_sdt", plan.sdtpath);
-    if(LOGGING) logger("reasons", declare_reasons(decisions, best_dec));
-    logger("planner_time", end_planner_ms - start_planner_ms);
+    if (LOGGING) {
+//        log("prev", "leftover", leftover.subtrajectory(NUM_REUSED + 1, 0, dt));
+        log("t_reuse", t_reuse);
+        log("t_replan", t_replan);
+        log("num_unused", num_unused);
+        log("last_plan_length", last_plan_length);
+        log("plan", plan_names[best_plan], plan);
+        double tproj = 0;
+        if (plan.t_max() > 0)
+            tproj = plan.t_max() - 0;
+        log("neighbors", neighbors, tproj);
+        vector<vector<double>> sdytpath;
+        vector<vector<double>> xyytpath;
+        for (double t = 0; t < plan.t_max(); t += .02) {
+            FrenetPose fp = plan.frenet(t);
+            WorldPose wp = plan.world(t);
+            sdytpath.push_back({fp.s, fp.d, fp.yaw, t});
+            xyytpath.push_back({wp.x, wp.y, wp.yaw, t});
+        }
+        log("plan_sdyt", sdytpath);
+        log("plan_xyyt", xyytpath);
+        log("reasons", declare_reasons(decisions, best_dec));
+        log("planner_time", end_planner_ms - start_planner_ms);
 
-    logger.end_item();
+        log.end_item();
+    }
 
     goal_lane = get_lane(plan);
-    return plan;
+
+    // Evaluate and return the discrete plan.
+    auto next_xy_vals = plan.decompose();
+    last_plan_length = next_xy_vals[0].size();
+    return next_xy_vals;
 }
 
 long Planner::now() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - construction_time;
 }
 
-Planner::Planner(CoordinateTransformer &transform) : transform(transform), logger(PyLogger(transform)){
+Planner::Planner(CoordinateTransformer &transform) : transform(transform), log(PyLogger(transform)),
+                                                     last_plan(&transform) {
     construction_time = 0;
     construction_time = now();
     last_lane_change_time_ms = 0;
+    last_plan_length = 0;
 }
 
-void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
+void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors) {
 
-    WorldPose ego_now = plans[0].initial();
+    WorldPose ego_now = plans[0].world(0);
 
     transform.set_reference(ego_now);
 
@@ -258,12 +207,12 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
     for (auto plan: plans) {
         iplan++;
         vector<double> x, y, t, c;
-        for (WorldPose pose : plan.poses) {
-            CarPose cp = transform.to_car(pose);
+        for (double t = 0; t <= plan.t_max(); t += .02) {
+            CarPose cp = transform.to_car(plan.frenet(t));
             x.push_back(cp.x);
             y.push_back(cp.y);
         }
-        for (double tv : plan.times) {
+        for (double tv = 0; tv <= plan.t_max(); tv += .02) {
             t.push_back(tv);
             c.push_back(0);
         }
@@ -278,16 +227,14 @@ void Planner::show_map(vector<Trajectory> plans, vector<Neighbor> neighbors) {
 
     for (auto n: neighbors) {
         vector<double> x, y, c;
-        for (int i = 0; i < plans[0].size(); i++) {
-            double t0 = plans[0].times[0];
-            double t = plans[0].times[i];
-            WorldPose other = n.future_position(t - t0);
+        for (double t = 0; t <= plans[0].t_max(); t += .02) {
+            WorldPose other = n.future_position(t);
             CarPose cp = transform.to_car(other);
             x.push_back(cp.x);
             y.push_back(cp.y);
             double min_dist = 9999;
             for (auto p : plans) {
-                min_dist = min(min_dist, get_world_dist(other, p.poses[i % p.size()]));
+                min_dist = min(min_dist, get_world_dist(other, p.world(t)));
             }
             c.push_back(min(min_dist, DIST_VIZ_CAP));
         }
@@ -317,13 +264,13 @@ int Planner::uniform_random(int low, int high_plus_one) {
     return dis(gen);
 }
 
-bool Planner::plan_changes_goal(Trajectory plan) {
+bool Planner::plan_changes_goal(Trajectory &plan) {
     int plan_goal_lane = get_lane(plan);
     int old_goal_lane = goal_lane;
     return plan_goal_lane != goal_lane;
 }
 
-bool Planner::cross_lane_plan(Trajectory plan) {
+bool Planner::cross_lane_plan(Trajectory &plan) {
     int plan_goal_lane = get_lane(plan);
     int old_goal_lane = goal_lane;
     return plan_goal_lane != current_lane;
@@ -417,9 +364,9 @@ int Planner::get_lane(WorldPose wp) {
     return get_lane(transform.to_frenet(wp));
 }
 
-int Planner::get_lane(Trajectory plan, bool final) {
+int Planner::get_lane(Trajectory &plan, bool final) {
     if (final)
-        return get_lane(plan.ultimate());
+        return get_lane(plan.d(plan.t_max()));
     else
-        return get_lane(plan.initial());
+        return get_lane(plan.d(0.));
 }

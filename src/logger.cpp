@@ -9,6 +9,8 @@ PyLogger::PyLogger(CoordinateTransformer &transform, string filePath) : transfor
     pyfile.precision(10);
     logging = true;
 
+    pyfile << "import numpy as np" << endl;
+
     pyfile << "data = {}" << std::endl;
 
     begin_item("map");
@@ -63,35 +65,8 @@ void PyLogger::operator()(std::string name, std::string desc, Trajectory tj) {
     if(!logging) return;
 
     pyfile << name << " = dict(" << endl;
-    
-    pyfile << "x" << " = [";
-    for (WorldPose p : tj.poses)
-    pyfile << p.x << ",";
-    pyfile << "]," << endl;
 
-    pyfile << "y" << " = [";
-    for (WorldPose p : tj.poses)
-    pyfile << p.y << ",";
-    pyfile << "]," << endl;
-
-    pyfile << "t" << " = [";
-    for (double t : tj.times)
-    pyfile << t << ",";
-    pyfile << "]," << endl;
-
-    pyfile << "s" << " = [";
-    for (WorldPose p : tj.poses) {
-    FrenetPose fp = transform.to_frenet(p);
-    pyfile << fp.s << ",";
-    }
-    pyfile << "]," << endl;
-
-    pyfile << "d" << " = [";
-    for (WorldPose p : tj.poses) {
-    FrenetPose fp = transform.to_frenet(p);
-    pyfile << fp.d << ",";
-    }
-    pyfile << "]," << endl;
+    pyfile << "dumps = " << tj.dumps() << "," << endl;
 
     (*this)("desc", desc);
 
@@ -115,17 +90,17 @@ void PyLogger::operator()(std::string name, std::vector<Neighbor> neighbors, dou
 
 void PyLogger::operator()(std::string name, std::vector<double> vec) {
     if(!logging) return;
-    pyfile << name << " = [";
+    pyfile << name << " = np.array([";
     for (double x : vec) {
         pyfile << x << ",";
     }
-    pyfile << "]," << endl;
+    pyfile << "])," << endl;
 }
 
 void PyLogger::operator()(std::string name, std::vector<std::vector<double>> arr) {
     if(!logging) return;
 
-    pyfile << name << " = [";
+    pyfile << name << " = np.array([";
     for (vector<double> vec : arr) {
         pyfile << "[";
         for (double x : vec) {
@@ -133,7 +108,7 @@ void PyLogger::operator()(std::string name, std::vector<std::vector<double>> arr
         }
         pyfile << "], ";
     }
-    pyfile << "]," << endl;
+    pyfile << "])," << endl;
 }
 
 void PyLogger::operator()(std::string name, std::vector<std::vector<std::vector<double>>> arr) {

@@ -6,68 +6,114 @@
 #define PATH_PLANNING_TRAJECTORY_H
 
 #include <vector>
-#include "coordinates.h"
-#include "jmt.h"
 #include <string>
 #include <sstream>
+#include <map>
+#include "coordinates.h"
+#include "jmt.h"
 #include "spline.h"
+
+struct State {
+    double y, yp, ypp;
+};
+
+struct FullState {
+    State s, d;
+};
+
+
+class TrajectorySegment {
+    // A TrajectorySegment is a map from [0, 1] to RxR.
+    // However, they first map time from t_pin_0 to t_pin_1
+    // to this [0, 1] range.
+
+    PolyTrajectory pt;
+
+public:
+
+    double remap(double t);
+
+    double t_pin_0, t_pin_1;
+
+    TrajectorySegment(double t_pin_0, double t_pin_1, FullState begin, FullState end);
+
+    FrenetPose operator()(double t);
+
+    double s_derivative(double t, int order = 1);
+
+    double d_derivative(double t, int order = 1);
+
+};
+
+struct SegmentRemit {
+    TrajectorySegment f;
+    double t_responsible_0, t_responsible_1;
+};
 
 class Trajectory {
 private:
-    double dt, Ds_used, DT_used;
+    std::map<double, double>
+            s_cache, d_cache,
+            sp_cache, dp_cache,
+            spp_cache, dpp_cache,
+            sppp_cache, dppp_cache;
+
+    std::vector<SegmentRemit> segments;
+
+    FullState state(double t);
+
+    CoordinateTransformer *transform;
 
 public:
-    double get_Ds_used() const;
 
-    double getDT_used() const;
+    double t_max();
 
-private:
+    Trajectory(CoordinateTransformer *transform);
 
-    void init(std::vector<double> X, std::vector<double> Y, double dt = .02);
+//    Trajectory(const Trajectory &parent);
 
-    void extend(PolyTrajectory sdpath_callable, unsigned long max_length, double DT, CoordinateTransformer &transform);
+    FrenetPose operator()(double t);
 
-public:
+    double s(double t, bool ignore_tmax = false);
 
-    std::vector<WorldPose> poses;
-    std::vector<std::vector<double>> sdtpath;
-    std::vector<double> times;
+    double d(double t, bool ignore_tmax = false);
 
-    Trajectory(std::vector<double> X, std::vector<double> Y, double dt = .02);
+    double sp(double t, bool ignore_tmax = false);
 
-    explicit Trajectory(double dt = .02);
+    double dp(double t, bool ignore_tmax = false);
 
-    unsigned long size();
+    double spp(double t);
 
-    bool empty();
+    double dpp(double t);
 
-    std::vector<std::vector<double>> decompose();
+    double sppp(double t);
 
-    Trajectory subtrajectory(int end, int start = 0, double dt = .02);
+    double dppp(double t);
 
-    void JMT_extend(
-            CoordinateTransformer transform,
-            double final_speed,
-            unsigned int plan_length,
-            WorldPose current,
-            double current_speed,
-            double text,
-            double final_d = 2 + 4 * 2,
-            double Ds = -1,
-            double DT = .75
+    double speed(double t);
+
+    double accel(double t);
+
+    double jerk(double t);
+
+    FrenetPose frenet(double t);
+
+    WorldPose world(double t);
+
+    Trajectory generate_extension(
+            FrenetPose current, double t_reuse, double t_replan, double DT, double DS, double sp,
+            double d, double spp = 0, double dp = 0, double dpp = 0
     );
 
-    WorldPose initial();
+    void cut_start(double t_reuse, double t_replan);
 
-    WorldPose ultimate();
+    SegmentRemit &get_remit(double t);
 
-    WorldPose penultimate();
+    std::string dumps();
 
-    WorldPose antepenultimate();
+    void plot(double t_reuse = -1, double t_replan = -1);
 
-    WorldPose preantepenultimate();
-
-    WorldPose suprapreantepenultimate();
+    std::vector<std::vector<double>> decompose();
 
 };
 

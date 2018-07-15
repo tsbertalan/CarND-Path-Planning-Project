@@ -30,13 +30,14 @@ int main() {
     assert(test_point.yaw == test_recovery.yaw);
 
     Planner planner(transform);
-    Trajectory leftover;
-    Trajectory newPlan = planner.make_plan(test_point, 32.0, leftover, {});
+    Trajectory leftover(&transform);
+    vector<vector<double>> newPlan = planner.make_plan(test_point, 32.0, 0, {});
 
     vector<double> xpoints, ypoints, spoints, dpoints, times;
 
     cout << "sdt=[";
-    for (WorldPose pose : newPlan.poses) {
+    for (int i = 0; i < newPlan[0].size(); i++) {
+        WorldPose pose = {.x=newPlan[0][i], .y=newPlan[1][i]};
         xpoints.push_back(pose.x);
         ypoints.push_back(pose.y);
 
@@ -51,13 +52,15 @@ int main() {
     cout << "]" << endl;
 
     cout << "xyt=[";
-    for (WorldPose pose : newPlan.poses) {
+    for (int i = 0; i < newPlan[0].size(); i++) {
+        WorldPose pose({.x=newPlan[0][i], .y=newPlan[1][i]});
         cout << "(" << pose.x << "," << pose.y << "," << pose.yaw << "),";
     }
     cout << "]" << endl;
 
     cout << "xyt_ret=[";
-    for (WorldPose pose : newPlan.poses) {
+    for (int i = 0; i < newPlan[0].size(); i++) {
+        WorldPose pose = {.x=newPlan[0][i], .y=newPlan[1][i]};
         WorldPose retransformed = transform.to_world(
                 transform.to_frenet(pose)
         );
@@ -65,7 +68,7 @@ int main() {
     }
     cout << "]" << endl;
 
-    for (double t : newPlan.times) {
+    for (double t = 0; t < newPlan[0].size() * .02; t += .02) {
         times.push_back(t);
     }
 
