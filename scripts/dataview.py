@@ -72,14 +72,12 @@ for k in sorted(keys)[::-1]:
 
     xyyt = d['plan_xyyt']
     x, y, yaw, t = xyyt.T
-    
-    # x_plan = x[num_used:]
-    # y_plan = y[num_used:]
-    # ax.plot(
-    #     x_plan, y_plan,
-    #     color='black', alpha=.5, linestyle='-', marker='o', markersize=1,
-    #     label='new plan'
-    # )
+
+    ax.scatter(
+        x, y,
+        color='purple', alpha=.5, marker='o', s=128,
+        label='new plan'
+    )
 
     segments = [Segment(segment_data) for segment_data in d['plan']['dumps']['segments']]
     for segment in segments:
@@ -167,7 +165,6 @@ for k in sorted(keys)[::-1]:
     dt = D(t)
     dx = D(x)
     dy = D(y)
-    print(dx/dt)
     inset.set_xlabel('$i_t$')
     inset.plot(tplot[1:], dx/dt, color='black')
     inset.set_ylabel(r'$\dot %s$ [$m/s$]' % xname)

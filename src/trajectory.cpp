@@ -20,7 +20,6 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
 
     // Get the initial state for the JMT.
     FullState begin;
-    double s;
     if (segments.size() == 0) {
         begin.s.y = current.s;
         begin.s.yp = 0;
@@ -36,20 +35,19 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
 
     }
 
-    if (DS == -1) {
-
-        DS = min(max(begin.s.yp, 0.0), sp) * DT;
-    }
-    s = begin.s.y + DS;
 
     // Construct the final state for the JMT.
     FullState end;
-    end.s.y = s;
     end.s.yp = sp;
     end.s.ypp = spp;
     end.d.y = d;
     end.d.yp = dp;
     end.d.ypp = dpp;
+    if (DS == -1) {
+        double mean_s_vel = (begin.s.yp + sp) / 2;
+        DS = mean_s_vel * DT;
+    }
+    end.s.y = begin.s.y + DS;
 
     Trajectory child(transform);
 
@@ -67,7 +65,7 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
     // Construct the new trajectory segment.
     child.segments.push_back(
             {
-                    .f=TrajectorySegment(t_replan, t_replan + DT, begin, end),
+                    .f=TrajectorySegment(t_replan, DT, begin, end),
                     .t_responsible_0=t_replan,
                     .t_responsible_1=t_replan + DT
             }
@@ -92,8 +90,7 @@ void Trajectory::cut_start(double t_reuse, double t_replan) {
     for (SegmentRemit remit : segments) {
 
         // Shift the segments.
-        remit.f.t_pin_0 -= t_reuse;
-        remit.f.t_pin_1 -= t_reuse;
+        remit.f.t_offset += t_reuse;
         remit.t_responsible_0 -= t_reuse;
         remit.t_responsible_1 -= t_reuse;
 
@@ -165,9 +162,11 @@ FullState Trajectory::state(double t) {
 }
 
 double Trajectory::s(double t, bool ignore_tmax) {
-    auto search = s_cache.find(t);
-    if (search != s_cache.end())
-        return search->second;
+    if (DO_CACHE) {
+        auto search = s_cache.find(t);
+        if (search != s_cache.end())
+            return search->second;
+    }
 
     TrajectorySegment segment = get_remit(t).f;
     double s_out;
@@ -177,15 +176,17 @@ double Trajectory::s(double t, bool ignore_tmax) {
         s_out = s(t_max(), true) + sp(t_max(), true) * (t - t_max());
     }
 
-    s_cache.emplace(t, s_out);
+    if (DO_CACHE) s_cache.emplace(t, s_out);
 
     return s_out;
 }
 
 double Trajectory::d(double t, bool ignore_tmax) {
-    auto search = d_cache.find(t);
-    if (search != d_cache.end())
-        return search->second;
+    if (DO_CACHE) {
+        auto search = d_cache.find(t);
+        if (search != d_cache.end())
+            return search->second;
+    }
 
     TrajectorySegment &segment = get_remit(t).f;
     double d_out;
@@ -195,7 +196,7 @@ double Trajectory::d(double t, bool ignore_tmax) {
         d_out = d(t_max(), true) + dp(t_max(), true) * (t - t_max());
     }
 
-    d_cache.emplace(t, d_out);
+    if (DO_CACHE) d_cache.emplace(t, d_out);
 
     return d_out;
 }
@@ -308,10 +309,10 @@ string Trajectory::dumps() {
         oss << "dict(" << endl;
         oss << "t_responsible_0 = " << segment.t_responsible_0 << "," << endl;
         oss << "t_responsible_1 = " << segment.t_responsible_1 << "," << endl;
-        oss << "t_pin_0 = " << segment.f.t_pin_0 << "," << endl;
-        oss << "t_pin_1 = " << segment.f.t_pin_1 << "," << endl;
+        oss << "t_pin_0 = " << -segment.f.t_offset << "," << endl;
+        oss << "t_pin_1 = " << segment.f.DT - segment.f.t_offset << "," << endl;
         oss << "sdy_xyy_t = np.array([" << endl;
-        for (double t = segment.t_responsible_0; t < segment.t_responsible_1; t += .01) {
+        for (double t = segment.t_responsible_0; t < segment.t_responsible_1; t += .02) {
             FrenetPose fp = segment.f(t);
             WorldPose wp = transform->to_world(fp);
             oss << "[";
@@ -363,7 +364,6 @@ void Trajectory::plot(double t_reuse, double t_replan) {
                "ax.set_xlabel('$x$ [m]')\n"
                "ax.set_ylabel('$y$ [m]')\n"
                "ax.set_aspect('equal', 'datalim')\n"
-               "ax.set_xlim(800, 1100)\n"
                "fig.suptitle('%d segment(s)' % len(data['segments']))\n"
                "plt.show()\n";
     program.flush();
@@ -383,16 +383,14 @@ std::vector<std::vector<double>> Trajectory::decompose() {
     return next_xy_vals;
 }
 
-TrajectorySegment::TrajectorySegment(double t_pin_0, double t_pin_1, FullState begin, FullState end)
-        : t_pin_0(t_pin_0), t_pin_1(t_pin_1),
-          pt(JMT(begin.s.y, begin.s.yp / (t_pin_1 - t_pin_0), begin.s.ypp / (t_pin_1 - t_pin_0) / (t_pin_1 - t_pin_0),
-                 end.s.y, end.s.yp / (t_pin_1 - t_pin_0), end.s.ypp / (t_pin_1 - t_pin_0) / (t_pin_1 - t_pin_0),
-                 begin.d.y, begin.d.yp / (t_pin_1 - t_pin_0), begin.d.ypp / (t_pin_1 - t_pin_0) / (t_pin_1 - t_pin_0),
-                 end.d.y, end.d.yp / (t_pin_1 - t_pin_0), end.d.ypp / (t_pin_1 - t_pin_0) / (t_pin_1 - t_pin_0),
-                 1.0)) {}
+TrajectorySegment::TrajectorySegment(double t0, double DT, FullState begin, FullState end)
+        : t_offset(-t0), DT(DT), pt(JMT(begin.s.y, begin.s.yp, begin.s.ypp,
+                                        end.s.y, end.s.yp, end.s.ypp,
+                                        begin.d.y, begin.d.yp, begin.d.ypp,
+                                        end.d.y, end.d.yp, end.d.ypp,
+                                        DT)) {}
 
 FrenetPose TrajectorySegment::operator()(double t) {
-    // Map t \in R to x \in [0, 1]
     double x = remap(t);
     vector<double> sd = pt(x);
     double sp = pt.paths[0].derivative(x);
@@ -402,7 +400,7 @@ FrenetPose TrajectorySegment::operator()(double t) {
 }
 
 double TrajectorySegment::remap(double t) {
-    return (t - t_pin_0) / (t_pin_1 - t_pin_0);
+    return t + t_offset;
 }
 
 double TrajectorySegment::s_derivative(double t, int order) {

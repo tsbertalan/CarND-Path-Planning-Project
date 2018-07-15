@@ -23,19 +23,22 @@ struct FullState {
 
 
 class TrajectorySegment {
-    // A TrajectorySegment is a map from [0, 1] to RxR.
-    // However, they first map time from t_pin_0 to t_pin_1
-    // to this [0, 1] range.
-
+    // A TrajectorySegment is a map from [0, DT) to RxR.
+    // However, we first map time from [t0, t0+DT)
+    // to this [0, DT) range.
+    // The polynomials are defined at DT, but this segment's
+    // domain ("responsibility") is only half-closed.
     PolyTrajectory pt;
 
 public:
 
     double remap(double t);
 
-    double t_pin_0, t_pin_1;
+    double t_offset;
 
-    TrajectorySegment(double t_pin_0, double t_pin_1, FullState begin, FullState end);
+    double DT;
+
+    TrajectorySegment(double t0, double DT, FullState begin, FullState end);
 
     FrenetPose operator()(double t);
 
@@ -52,11 +55,9 @@ struct SegmentRemit {
 
 class Trajectory {
 private:
-    std::map<double, double>
-            s_cache, d_cache,
-            sp_cache, dp_cache,
-            spp_cache, dpp_cache,
-            sppp_cache, dppp_cache;
+    std::map<double, double> s_cache, d_cache;
+
+    const static bool DO_CACHE = false;
 
     std::vector<SegmentRemit> segments;
 
