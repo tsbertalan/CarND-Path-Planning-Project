@@ -116,6 +116,8 @@ public:
 
     std::vector<std::vector<double>> decompose(double dt_extension=0);
 
+    int num_segments();
+
 };
 
 

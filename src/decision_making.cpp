@@ -22,21 +22,22 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     vector<Trajectory> plans;
     vector<string> plan_names;
 
+    // TODO: Put all parameters in one header file.
     int NUM_PLANS = 128;
-    const bool SHOW_ALL_PLANS = true;
-    const bool LOGGING = true;
+    bool SHOW_ALL_PLANS = false;
+    bool LOGGING = false;
     log.set_status(LOGGING);
-    const bool DEBUG = false;
-    double MAX_SPEED_DIFFERENCE = 10;
-    double MIN_SPEED_DIFFERENCE = -40;
+    bool DEBUG = false;
+    double MAX_TARGET_SPEED = 47;
     double MIN_TARGET_SPEED = 1;
-    double MAX_TARGET_SPEED = 80;
+    double MAX_SPEED_DIFFERENCE = 10;
+    double MIN_SPEED_DIFFERENCE = -MAX_TARGET_SPEED + 4;
     double EXT_TIME = 1;
-    unsigned int NUM_REUSED = 8;
-    const double TAILGATE_BUFFER = 12;
+    unsigned int NUM_REUSED = 16;
+    double TAILGATE_BUFFER = 12;
 
-    const double MIN_DT = 2;
-    const double MAX_DT = 3;
+    double MIN_DT = 2;
+    double MAX_DT = 3;
 
     double t_reuse = .02 * (last_plan_length - num_unused);
     double t_replan = t_reuse + NUM_REUSED * .02;
@@ -58,6 +59,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 
 
     // Generate multiple plans.
+    // TODO: Consider multipart maneuvers, now that we have piecewise-polynomial trajectories.
     FrenetPose current_frenet = transform.to_frenet(current);
     for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
 //    for (int iplan = 0; iplan < 1; iplan++) {
@@ -152,8 +154,8 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     if (DEBUG) show_map(plans, neighbors);
 
     long end_planner_ms = now();
-//    if (plan_changes_goal(plan) || DEBUG)
-    cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
+    if (plan_changes_goal(plan) || DEBUG)
+        cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
 
 
     // Log the plan.
@@ -185,6 +187,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     }
 
     goal_lane = get_lane(plan);
+
 
     // Evaluate and return the discrete plan.
     auto next_xy_vals = plan.decompose(EXT_TIME);

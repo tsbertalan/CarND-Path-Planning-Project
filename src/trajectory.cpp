@@ -382,6 +382,10 @@ std::vector<std::vector<double>> Trajectory::decompose(double dt_extension) {
     return next_xy_vals;
 }
 
+int Trajectory::num_segments() {
+    return segments.size();
+}
+
 TrajectorySegment::TrajectorySegment(double t0, double DT, FullState begin, FullState end)
         : t_offset(-t0), DT(DT), pt(JMT(begin.s.y, begin.s.yp, begin.s.ypp,
                                         end.s.y, end.s.yp, end.s.ypp,

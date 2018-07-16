@@ -18,7 +18,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     const double SCALE_DISTANCE_X = .1;
 
     const double CRITICAL_DISTANCE_Y = WWARN_RADIUS;
-    const double SCALE_DISTANCE_Y = 4;
+    const double SCALE_DISTANCE_Y = 5;
 
     const double FACTOR_ACCEL = 1. / 24.;
     const double FACTOR_JERK = 1. / 96.;
@@ -32,7 +32,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     // If goal speed is too close to MAX_SPEED_CONSIDERED,
     // we'll be starved for fast-enough trajectories,
     // and might drop other criteria.
-    const double GOAL_SPEED = 70 * MIPH_TO_MPS;
+    const double GOAL_SPEED = 44 * MIPH_TO_MPS;
     const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
     const double FACTOR_NEGATIVE_SPEED_DEVIATION = .2;
     const double FACTOR_VDEV = .3;
@@ -57,6 +57,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     //// Check whether the plan entails likely collisions.
     // TODO: Analyze and consider side-swipe scenarios.
     // TODO: Put neighbor loop inside time loop, for interleaving with other time-dependent costs.
+    // TODO: Apply a discount factor for cost borne further in the future.
     double cost_dist = 0;
     int i_neighbor = -1;
     for (auto neighbor : neighbors) {

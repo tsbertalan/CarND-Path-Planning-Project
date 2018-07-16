@@ -141,39 +141,27 @@ int main() {
                     // Previous path data given to the Planner
                     int num_unused = j[1]["previous_path_x"].size();
 
-                    // Consider whether we actually want to replan.
-                    vector<double> next_x_vals, next_y_vals;
-                    if (num_unused > 90) {
-                        for (int i_t = 0; i_t < num_unused; i_t++) {
-                            next_x_vals.push_back(j[1]["previous_path_x"][i_t]);
-                            next_y_vals.push_back(j[1]["previous_path_y"][i_t]);
-                        }
 
-                    } else {
+                    // Sensor Fusion Data, a list of all other cars on the same side of the road.
+                    auto sensor_fusion = j[1]["sensor_fusion"];
 
-                        // Sensor Fusion Data, a list of all other cars on the same side of the road.
-                        auto sensor_fusion = j[1]["sensor_fusion"];
 
-                        vector<Neighbor> neighbors;
-                        for (auto sf : sensor_fusion) {
-                            //sf = id, x, y, vx, vy, s, d
-                            neighbors.push_back(Neighbor(transform, sf[0], sf[1], sf[2], sf[3], sf[4]));
-                        }
-
-                        vector<vector<double>> next_xy_vals = planner.make_plan(
-                                {.x=car_x, .y=car_y, .yaw=car_yaw},
-                                car_speed,
-                                num_unused,
-                                neighbors
-                        );
-
-                        next_x_vals = next_xy_vals[0];
-                        next_y_vals = next_xy_vals[1];
+                    vector<Neighbor> neighbors;
+                    for (auto sf : sensor_fusion) {
+                        //sf = id, x, y, vx, vy, s, d
+                        neighbors.push_back(Neighbor(transform, sf[0], sf[1], sf[2], sf[3], sf[4]));
                     }
 
+                    vector<vector<double>> next_xy_vals = planner.make_plan(
+                            {.x=car_x, .y=car_y, .yaw=car_yaw},
+                            car_speed,
+                            num_unused,
+                            neighbors
+                    );
+
                     json msgJson;
-                    msgJson["next_x"] = next_x_vals;
-                    msgJson["next_y"] = next_y_vals;
+                    msgJson["next_x"] = next_xy_vals[0];
+                    msgJson["next_y"] = next_xy_vals[1];
 
                     // Send.
                     auto msg = "42[\"control\"," + msgJson.dump() + "]";
