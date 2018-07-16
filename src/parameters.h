@@ -40,6 +40,7 @@ extern double LWARN_RADIUS; // = CAR_LENGTH + 4;
 
 extern double CRITICAL_DISTANCE_X; // = LWARN_RADIUS;
 extern double SCALE_DISTANCE_X; // = .1;
+extern double PENALTY_FATAL;
 
 extern double CRITICAL_DISTANCE_Y; // = WWARN_RADIUS;
 extern double SCALE_DISTANCE_Y; // = 5;

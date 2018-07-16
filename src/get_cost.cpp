@@ -38,8 +38,29 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
             double cost;
 
-            cost = expit(ds, CRITICAL_DISTANCE_X, -SCALE_DISTANCE_X)
-                   * expit(dd, CRITICAL_DISTANCE_Y, -SCALE_DISTANCE_Y);
+            // Treat collisions as fatal.
+            if (
+                // Not /2 because it's our radius plus their radius (distance between centers).
+                    ds <= CAR_LENGTH
+                    && ds >= -CAR_LENGTH
+                    && dd <= CAR_WIDTH
+                    && dd >= -CAR_WIDTH
+                    ) {
+                cost = PENALTY_FATAL;
+
+                // Passing is fine.
+            } else if (dd < -CAR_WIDTH || dd > CAR_WIDTH) {
+                cost = 0;
+
+                // Following or being followed is linearly costly with s-distance.
+            } else {
+                if (ds > 0)
+                    cost = max(1 - (ds - CAR_LENGTH) * SCALE_DISTANCE_X, 0.);
+                else
+                    cost = max(1 + (ds - CAR_LENGTH) * SCALE_DISTANCE_X, 0.);
+            }
+
+            // Take the largest such cost of the whole trajectory.
             if (cost > cost_dist)
                 cost_dist = cost;
         }

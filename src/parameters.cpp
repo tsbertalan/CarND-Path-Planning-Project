@@ -29,16 +29,13 @@ bool DO_CACHE = true;
 // COST
 double FACTOR_DISTANCE = 5;
 
-double CAR_WIDTH = 3;
-double CAR_LENGTH = 6;
-double WWARN_RADIUS = CAR_WIDTH - .5;
-double LWARN_RADIUS = CAR_LENGTH + 4;
+double CAR_WIDTH = 2.5;
+double CAR_LENGTH = 4;
 
-double CRITICAL_DISTANCE_X = LWARN_RADIUS;
+double PENALTY_FATAL = 10;
+
 double SCALE_DISTANCE_X = .1;
 
-double CRITICAL_DISTANCE_Y = WWARN_RADIUS;
-double SCALE_DISTANCE_Y = 5;
 
 double FACTOR_ACCEL = 1. / 24.;
 double FACTOR_JERK = 1. / 96.;
