@@ -134,17 +134,17 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     if (d < 0)
       cost_road_profile += line(d, -1, PENALTY_OFF_ROAD, 0, PENALTY_LINE_SOLID);
     else if (d < 2)
-      cost_road_profile += line(d, 0, PENALTY_LINE_SOLID, 2, PENALTY_LANE_LEFT);
+      cost_road_profile += line(d, 0, PENALTY_LINE_SOLID, LANE_DEFINITION_LEFT, PENALTY_LANE_LEFT);
     else if (d < 4)
-      cost_road_profile += line(d, 2, PENALTY_LANE_LEFT, 4, PENALTY_LINE_DASHED);
+      cost_road_profile += line(d, LANE_DEFINITION_LEFT, PENALTY_LANE_LEFT, 4, PENALTY_LINE_DASHED);
     else if (d < 6)
-      cost_road_profile += line(d, 4, PENALTY_LINE_DASHED, 6, 0);
+      cost_road_profile += line(d, 4, PENALTY_LINE_DASHED, LANE_DEFINITION_CENTER, 0);
     else if (d < 8)
-      cost_road_profile += line(d, 6, 0, 8, PENALTY_LINE_DASHED);
+      cost_road_profile += line(d, LANE_DEFINITION_CENTER, 0, 8, PENALTY_LINE_DASHED);
     else if (d < 10)
-      cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, 10, PENALTY_LANE_RIGHT);
+      cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, LANE_DEFINITION_RIGHT, PENALTY_LANE_RIGHT);
     else if (d < 12)
-      cost_road_profile += line(d, 10, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
+      cost_road_profile += line(d, LANE_DEFINITION_RIGHT, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
     else
       cost_road_profile += line(d, 12, PENALTY_LINE_SOLID, 13, PENALTY_OFF_ROAD);
   }

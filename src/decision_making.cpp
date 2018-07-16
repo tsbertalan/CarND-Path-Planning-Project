@@ -39,9 +39,19 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   // TODO: Consider multipart maneuvers, now that we have piecewise-polynomial trajectories.
   FrenetPose current_frenet = transform.to_frenet(current);
   for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
-//    for (int iplan = 0; iplan < 1; iplan++) {
 
-    int plan_target = uniform_random(0, 3);
+    int target_lane = uniform_random(0, 3);
+
+    double plan_target;
+    switch (target_lane) {
+      case 0:plan_target = LANE_DEFINITION_LEFT;
+        break;
+      case 1:plan_target = LANE_DEFINITION_CENTER;
+        break;
+      case 2:plan_target = LANE_DEFINITION_RIGHT;
+        break;
+    }
+
     double speed_difference = uniform_random(
         max(
             MIN_SPEED_DIFFERENCE,
@@ -56,14 +66,8 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     double target_speed = current_speed + speed_difference;
     double DT = uniform_random(MIN_DT, MAX_DT);
 
-    // DEBUGGING:
-//        int plan_target = 1;
-//        double target_speed = 42 * MIPH_TO_MPS;
-//        double DT = 2;
-
-
     State s_end = {.y=(current_speed + target_speed)/2*DT, .yp=target_speed, .ypp=0};
-    State d_end = {.y=plan_target*4. + 2., .yp=0, .ypp=0};
+    State d_end = {.y=plan_target, .yp=0, .ypp=0};
 
     Trajectory plan = last_plan.generate_extension(
         current_frenet,
@@ -72,7 +76,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
         DT,
         -1,
         target_speed,
-        plan_target*4 + 2
+        plan_target
     );
 
     plan_names.push_back(describe_plan(plan, current_speed, target_speed, DT));

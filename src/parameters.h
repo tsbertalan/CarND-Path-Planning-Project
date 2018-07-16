@@ -20,6 +20,10 @@ extern unsigned int NUM_REUSED;
 extern double MIN_DT;
 extern double MAX_DT;
 
+extern double LANE_DEFINITION_LEFT;
+extern double LANE_DEFINITION_CENTER;
+extern double LANE_DEFINITION_RIGHT;
+
 extern double MIPH_TO_MPS;
 
 // TRAJECTORY GENERATION

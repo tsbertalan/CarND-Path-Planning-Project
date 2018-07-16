@@ -5,7 +5,7 @@
 
 // PLANNER
 int NUM_PLANS = 128;
-bool SHOW_COSTS_TABLE = true;
+bool SHOW_COSTS_TABLE = false;
 bool LOGGING = false;
 bool DEBUG = false;
 double MAX_TARGET_SPEED = 47;
@@ -17,6 +17,10 @@ unsigned int NUM_REUSED = 16;
 
 double MIN_DT = 2;
 double MAX_DT = 3;
+
+double LANE_DEFINITION_LEFT = 2.1;
+double LANE_DEFINITION_CENTER = 6;
+double LANE_DEFINITION_RIGHT = 9.9;
 
 double MIPH_TO_MPS = (5280/1.)*(1./3.2808)*(1/3600.);
 
