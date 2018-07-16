@@ -11,7 +11,6 @@
 
 void print_vec(std::vector<double> v, std::string name, std::string sep = " = ");
 
-
 long argmin(std::vector<double> v);
 
 double min(std::vector<double> v);
@@ -25,7 +24,6 @@ double max(std::vector<double> v);
 std::vector<unsigned long> argsort(std::vector<double> v);
 
 std::vector<unsigned long> argsort(std::vector<int> v);
-
 
 double expit(double x, double x_critical, double scale_factor = 1);
 

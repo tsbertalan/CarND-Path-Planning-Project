@@ -22,12 +22,8 @@ extern double MAX_DT;
 
 extern double MIPH_TO_MPS;
 
-
-
 // TRAJECTORY GENERATION
 extern bool DO_CACHE;
-
-
 
 // COST
 extern double FACTOR_DISTANCE;
