@@ -79,7 +79,6 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
 void Trajectory::cut_start(double t_reuse, double t_replan) {
 
     // Cut off some of our current path segments.
-    cout << segments.size() << " segments." << endl;
     bool many_segments = segments.size() > 2;
     if (many_segments) {
         system("pgrep --full 'trajectory_plot' | xargs kill &");
@@ -372,10 +371,10 @@ void Trajectory::plot(double t_reuse, double t_replan) {
     system(cmd.str().c_str());
 }
 
-std::vector<std::vector<double>> Trajectory::decompose() {
+std::vector<std::vector<double>> Trajectory::decompose(double dt_extension) {
     vector<vector<double>> next_xy_vals = {{},
                                            {}};
-    for (double t = 0; t < t_max(); t += .02) {
+    for (double t = 0; t < t_max() + dt_extension; t += .02) {
         WorldPose pose = world(t);
         next_xy_vals[0].push_back(pose.x);
         next_xy_vals[1].push_back(pose.y);

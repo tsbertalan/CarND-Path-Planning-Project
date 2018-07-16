@@ -129,18 +129,15 @@ for k in sorted(keys)[::-1]:
     xname, yname = 'x', 'y'
 
 
-    sdyt = np.array(d['plan_sdyt']).T
-    x = sdyt[0]
-    # x -= x.min()
-    y = sdyt[1]
-    # yaw=sdyt[2]
-    t = sdyt[3]
+    sdyt = d['plan_sdyt'][i1:i2]
+    x, y, yaw, t = sdyt[i1:i2].T
+    #x -= x.min()
     xname, yname = 's', 'd'
 
-    # tplot = np.arange(len(t))
-    # tname = '$i_t$'
-    tplot = t
-    tname = '$t$ [s]'
+    tplot = np.arange(len(t))
+    tname = '$i_t$'
+    # tplot = t
+    # tname = '$t$ [s]'
 
     # Inset plot for raw x and y values
     inset = plt.axes([.7, .6, .2, .2])
@@ -149,6 +146,7 @@ for k in sorted(keys)[::-1]:
     inset.set_ylabel('$%s$' % xname)
     inset2 = inset.twinx()
     inset2.plot(tplot, y, color='red')#, marker='o')
+    inset2.yaxis.get_offset_text().set_color('red')
     inset2.tick_params(axis='y', colors='red')
     inset2.set_ylabel('$%s$' % yname, color='red')
     inset.grid(False)
@@ -170,6 +168,7 @@ for k in sorted(keys)[::-1]:
     inset.set_ylabel(r'$\dot %s$ [$m/s$]' % xname)
     inset2 = inset.twinx()
     inset2.plot(tplot[1:], dy/dt, color='red')
+    inset2.yaxis.get_offset_text().set_color('red')
     inset2.tick_params(axis='y', colors='red')
     inset2.set_ylabel(r'$\dot %s$ [$m/s$]' % yname, color='red')
     inset.grid(False)
@@ -195,6 +194,7 @@ for k in sorted(keys)[::-1]:
 
     inset2 = inset.twinx()
     inset2.plot(tplot[3:], jerk, color='red')
+    inset2.yaxis.get_offset_text().set_color('red')
     inset2.tick_params(axis='y', colors='red')
     inset2.set_ylabel('jerk [$m/s^3$]', color='red')
 
@@ -208,14 +208,23 @@ for k in sorted(keys)[::-1]:
     # Bounding boxes
     xyyt = d['plan_xyyt']
     x, y, yaw, t = xyyt.T
-    t_reuse, t_replan = d['t_reuse'], d['t_replan']
-    i_reuse = np.argmin(np.abs(t - t_reuse))
-    i_replan = np.argmin(np.abs(t - t_replan))
-    xcar = x[i_reuse]
-    ycar = y[i_reuse]
+    xcar = x[0]
+    ycar = y[0]
     draw_box(ax, xcar, ycar, 
         theta=np.arctan2(y[1]-y[0], x[1]-x[0]),
         color='black'
+    )
+
+    # Mark reuse/replan points.
+    t_reuse, t_replan = d['t_reuse'], d['t_replan']
+    t_replan -= t_reuse
+    t_reuse -= t_reuse
+    i_reuse = np.argmin(np.abs(t - t_reuse))
+    i_replan = np.argmin(np.abs(t - t_replan))
+    ax.scatter(
+        [x[i_reuse], x[i_replan]], [y[i_reuse], y[i_replan]], 
+        s=256, facecolor='none', edgecolor='red',
+        label='reuse/replan points'
     )
 
     # Show neighbor paths.

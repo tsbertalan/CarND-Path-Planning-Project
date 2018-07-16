@@ -57,7 +57,7 @@ class Trajectory {
 private:
     std::map<double, double> s_cache, d_cache;
 
-    const static bool DO_CACHE = false;
+    const static bool DO_CACHE = true;
 
     std::vector<SegmentRemit> segments;
 
@@ -114,7 +114,7 @@ public:
 
     void plot(double t_reuse = -1, double t_replan = -1);
 
-    std::vector<std::vector<double>> decompose();
+    std::vector<std::vector<double>> decompose(double dt_extension=0);
 
 };
 

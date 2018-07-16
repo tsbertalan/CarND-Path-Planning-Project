@@ -7,7 +7,7 @@
 
 CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, string label, bool heading) {
 
-    const double FACTOR_DISTANCE = 1;
+    const double FACTOR_DISTANCE = 2;
 
     const double CAR_WIDTH = 3;
     const double CAR_LENGTH = 6;
@@ -35,9 +35,9 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     const double GOAL_SPEED = 45 * MIPH_TO_MPS;
     const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
     const double FACTOR_NEGATIVE_SPEED_DEVIATION = .2;
-    const double FACTOR_VDEV = .1;
+    const double FACTOR_VDEV = .2;
 
-    const double FACTOR_LANE_SW = .1;
+    const double FACTOR_LANE_SW = .01;
 
     const double CRITICAL_SWITCHTIME = 500;
     const double SCALE_SWITCHTIME = .01;

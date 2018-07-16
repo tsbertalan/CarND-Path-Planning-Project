@@ -22,16 +22,16 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     vector<Trajectory> plans;
     vector<string> plan_names;
 
-    int NUM_PLANS = 200;
-    const bool SHOW_ALL_PLANS = false;
+    int NUM_PLANS = 128;
+    const bool SHOW_ALL_PLANS = true;
     const bool LOGGING = true;
     log.set_status(LOGGING);
     const bool DEBUG = false;
     double MAX_SPEED_DIFFERENCE = 10;
-    double MIN_SPEED_DIFFERENCE = -10;
+    double MIN_SPEED_DIFFERENCE = -20;
     double MIN_TARGET_SPEED = 1;
     double MAX_TARGET_SPEED = 50;
-    double EXT_TIME = 4;
+    double EXT_TIME = 1;
     unsigned int NUM_REUSED = 4;
     const double TAILGATE_BUFFER = 12;
 
@@ -59,17 +59,19 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 
     // Generate multiple plans.
     FrenetPose current_frenet = transform.to_frenet(current);
-//    for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
-    for (int iplan = 0; iplan < 1; iplan++) {
+    for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
+//    for (int iplan = 0; iplan < 1; iplan++) {
 
-//        int plan_target = uniform_random(0, 3);
-//        double speed_difference = uniform_random(MIN_SPEED_DIFFERENCE, MAX_SPEED_DIFFERENCE);
-//        double target_speed = min(MAX_TARGET_SPEED, max(MIN_TARGET_SPEED,
-//                current_speed + speed_difference));
-//        double DT = uniform_random(MIN_DT, MAX_DT);
-        int plan_target = 1;
-        double target_speed = 42 * MIPH_TO_MPS;
-        double DT = 2;
+        int plan_target = uniform_random(0, 3);
+        double speed_difference = uniform_random(MIN_SPEED_DIFFERENCE, MAX_SPEED_DIFFERENCE);
+        double target_speed = min(MAX_TARGET_SPEED, max(MIN_TARGET_SPEED,
+                current_speed + speed_difference));
+        double DT = uniform_random(MIN_DT, MAX_DT);
+
+        // DEBUGGING:
+//        int plan_target = 1;
+//        double target_speed = 42 * MIPH_TO_MPS;
+//        double DT = 2;
 
 
         State s_end = {.y=(current_speed + target_speed) / 2 * DT, .yp=target_speed, .ypp=0};
@@ -176,7 +178,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     goal_lane = get_lane(plan);
 
     // Evaluate and return the discrete plan.
-    auto next_xy_vals = plan.decompose();
+    auto next_xy_vals = plan.decompose(EXT_TIME);
     last_plan_length = next_xy_vals[0].size();
     return next_xy_vals;
 }
