@@ -92,10 +92,10 @@ private:
     std::vector<double> map_waypoints_dx;
     std::vector<double> map_waypoints_dy;
     WorldPose car_reference;
-    double max_s;
     spline::tk::spline spline_x, spline_y, spline_dx, spline_dy;
-
 public:
+
+    double max_s;
     CoordinateTransformer();
 
     void set_reference(WorldPose car);

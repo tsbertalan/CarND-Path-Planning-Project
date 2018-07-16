@@ -33,17 +33,6 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     if (last_plan.t_max() < t_replan)
         t_replan = last_plan.t_max();
 
-//    // Consider whether we actually want to replan.
-//    if(num_unused > 90) {
-//        cout << " === " << endl;
-//        cout << t_reuse << "," << t_replan << "," << last_plan.t_max() << endl;
-//        cout << t_reuse/.02 << "," << t_replan / .02 << endl;
-//        last_plan.cut_start(t_reuse, last_plan.t_max());
-//        auto next_xy_vals = last_plan.decompose();
-//        last_plan_length = next_xy_vals[0].size();
-//        return next_xy_vals;
-//    }
-
     log.begin_item(now());
 
 

@@ -175,6 +175,7 @@ double Trajectory::s(double t, bool ignore_tmax) {
     } else {
         s_out = s(t_max(), true) + sp(t_max(), true) * (t - t_max());
     }
+    s_out = fmod(s_out, transform->max_s);
 
     if (DO_CACHE) s_cache.emplace(t, s_out);
 

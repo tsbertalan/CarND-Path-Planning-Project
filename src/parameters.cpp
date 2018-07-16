@@ -15,7 +15,6 @@ double MAX_SPEED_DIFFERENCE = 10;
 double MIN_SPEED_DIFFERENCE = -MAX_TARGET_SPEED + 4;
 double EXT_TIME = 1;
 unsigned int NUM_REUSED = 16;
-double TAILGATE_BUFFER = 12;
 
 double MIN_DT = 2;
 double MAX_DT = 3;
@@ -50,9 +49,6 @@ double CRITICAL_ACCEL_EXCESS = 10;
 double FACTOR_JERK_EXCESS = 1;
 double CRITICAL_JERK_EXCESS = 10;
 
-// If goal speed is too close to MAX_SPEED_CONSIDERED,
-// we'll be starved for fast-enough trajectories,
-// and might drop other criteria.
 double GOAL_SPEED = 44 * MIPH_TO_MPS;
 double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
 double FACTOR_NEGATIVE_SPEED_DEVIATION = .2;
