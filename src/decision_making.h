@@ -46,6 +46,8 @@ class Planner {
   Trajectory last_plan;
   int last_plan_length;
 
+  long cost_evaluation_time;
+
  public:
   int getCurrent_lane() const;
 

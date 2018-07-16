@@ -53,7 +53,7 @@ double FACTOR_VDEV = .4;
 
 double FACTOR_LANE_SW = .01;
 
-double CRITICAL_SWITCHTIME = 500;
+double CRITICAL_SWITCHTIME = 1750;
 double SCALE_SWITCHTIME = .01;
 double FACTOR_FASTSW = .4;
 

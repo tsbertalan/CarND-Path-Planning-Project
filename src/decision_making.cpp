@@ -89,6 +89,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   CostDecision decisionsa[plans.size()];
 
   //#pragma omp parallel for
+  cost_evaluation_time = now();
   for (int i = 0; i < plans.size(); i++) {
     Trajectory plan = plans[i];
     string planName = plan_names[i];

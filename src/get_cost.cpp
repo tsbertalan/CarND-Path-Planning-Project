@@ -104,18 +104,14 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
   //// Penalize any lane shifts.
   int plan_goal_lane = get_lane(plan);
-  bool plan_changes_goal_lane = goal_lane!=plan_goal_lane;
-  if (plan_changes_goal_lane)
-    cost_parts.push_back(FACTOR_LANE_SW);
-  else
-    cost_parts.push_back(0);
+  cost_parts.push_back(abs(goal_lane - plan_goal_lane)*FACTOR_LANE_SW);
   cost_names.push_back("sw");
 
 
   //// Penalise quickly repeated lane shifts.
   double cost_fastsw = 0;
-  if (plan_changes_goal_lane) {
-    cost_fastsw = expit(now() - last_lane_change_time_ms, CRITICAL_SWITCHTIME, -SCALE_SWITCHTIME);
+  if (goal_lane!=plan_goal_lane) {
+    cost_fastsw = expit(cost_evaluation_time - last_lane_change_time_ms, CRITICAL_SWITCHTIME, -SCALE_SWITCHTIME);
   }
   cost_parts.push_back(cost_fastsw*FACTOR_FASTSW);
   cost_names.push_back("fastsw");
@@ -152,6 +148,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   cost_names.push_back("CRP");
 
 
+
   //// TODO: Add a max-jerk cost.
 
 
@@ -161,7 +158,6 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
 
   //// TODO: Add a positive cost for long-time trajectories (dump the vdeviation cost?).
-
 
 
 
