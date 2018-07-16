@@ -36,8 +36,7 @@ double PENALTY_FATAL = 10;
 
 double SCALE_DISTANCE_X = .1;
 
-
-double FACTOR_ACCEL = 1. / 24.;
+double FACTOR_ACCEL = 1. / 45.;
 double FACTOR_JERK = 1. / 96.;
 
 double FACTOR_ACCEL_EXCESS = 1;
@@ -46,10 +45,10 @@ double CRITICAL_ACCEL_EXCESS = 10;
 double FACTOR_JERK_EXCESS = 1;
 double CRITICAL_JERK_EXCESS = 10;
 
-double GOAL_SPEED = 44 * MIPH_TO_MPS;
+double GOAL_SPEED = 46 * MIPH_TO_MPS;
 double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
 double FACTOR_NEGATIVE_SPEED_DEVIATION = .2;
-double FACTOR_VDEV = .3;
+double FACTOR_VDEV = .4;
 
 double FACTOR_LANE_SW = .01;
 
@@ -57,4 +56,9 @@ double CRITICAL_SWITCHTIME = 500;
 double SCALE_SWITCHTIME = .01;
 double FACTOR_FASTSW = .4;
 
-double FACTOR_OOL = .001;
+double FACTOR_CRP = .003;
+double PENALTY_LANE_LEFT = .25;
+double PENALTY_LANE_RIGHT = .25;
+double PENALTY_LINE_SOLID = 2;
+double PENALTY_LINE_DASHED = 1;
+double PENALTY_OFF_ROAD = 10;

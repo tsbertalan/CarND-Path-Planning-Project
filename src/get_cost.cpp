@@ -10,7 +10,6 @@
 CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, string label, bool heading) {
 
 
-
     vector<const char *> cost_names;
     vector<double> cost_parts;
 
@@ -38,9 +37,9 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
             double cost;
 
-            // Treat collisions as fatal.
             if (
-                // Not /2 because it's our radius plus their radius (distance between centers).
+                // Treat collisions as fatal.
+                // (not /2 because it's our radius plus their radius (distance between centers))
                     ds <= CAR_LENGTH
                     && ds >= -CAR_LENGTH
                     && dd <= CAR_WIDTH
@@ -48,21 +47,22 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
                     ) {
                 cost = PENALTY_FATAL;
 
-                // Passing is fine.
             } else if (dd < -CAR_WIDTH || dd > CAR_WIDTH) {
+                // Passing is fine.
                 cost = 0;
 
-                // Following or being followed is linearly costly with s-distance.
             } else {
+                // Following or being followed is linearly costly with s-distance.
                 if (ds > 0)
                     cost = max(1 - (ds - CAR_LENGTH) * SCALE_DISTANCE_X, 0.);
                 else
                     cost = max(1 + (ds - CAR_LENGTH) * SCALE_DISTANCE_X, 0.);
             }
 
-            // Take the largest such cost of the whole trajectory.
-            if (cost > cost_dist)
+            if (cost > cost_dist) {
+                // Take the largest such cost of the whole trajectory.
                 cost_dist = cost;
+            }
         }
     }
     cost_parts.push_back(cost_dist * FACTOR_DISTANCE);
@@ -124,32 +124,34 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
 
     // Make a lane-centering and out-of-road cost.
-    double cost_out_of_lane = 0;
-    const double c1 = 1;
-    const double cinf = 10;
-    const double sl1 = c1 / 2;
-    const double sl2 = cinf / 2;
+    double cost_road_profile = 0;
+
+    // Construct the cost piecewise from lines.
+    auto line = [](double x, double x1, double y1, double x2, double y2) {
+        return (y2 - y1) / (x2 - x1) * (x - x1) + y1;
+    };
+
     for (double t = 0; t <= plan.t_max(); t += .02) {
         double d = plan.d(t);
-        if(d < 0)
-            cost_out_of_lane += -sl2 * d + c1;
-        else if(d < 2)
-            cost_out_of_lane += -sl1 * d + c1;
-        else if(d < 4)
-            cost_out_of_lane += sl1 * d - c1;
-        else if(d < 6)
-            cost_out_of_lane += -sl1 * d + 3 * c1;
-        else if(d < 8)
-            cost_out_of_lane += sl1 * d - 3 * c1;
-        else if(d < 10)
-            cost_out_of_lane += -sl1 * d + 5 * c1;
-        else if(d < 12)
-            cost_out_of_lane += sl1 * d - 5 * c1;
+        if (d < 0)
+            cost_road_profile += line(d, -1, PENALTY_OFF_ROAD, 0, PENALTY_LINE_SOLID);
+        else if (d < 2)
+            cost_road_profile += line(d, 0, PENALTY_LINE_SOLID, 2, PENALTY_LANE_LEFT);
+        else if (d < 4)
+            cost_road_profile += line(d, 2, PENALTY_LANE_LEFT, 4, PENALTY_LINE_DASHED);
+        else if (d < 6)
+            cost_road_profile += line(d, 4, PENALTY_LINE_DASHED, 6, 0);
+        else if (d < 8)
+            cost_road_profile += line(d, 6, 0, 8, PENALTY_LINE_DASHED);
+        else if (d < 10)
+            cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, 10, PENALTY_LANE_RIGHT);
+        else if (d < 12)
+            cost_road_profile += line(d, 10, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
         else
-            cost_out_of_lane += sl2 * d - 12 * sl2 + c1;
+            cost_road_profile += line(d, 12, PENALTY_LINE_SOLID, 13, PENALTY_OFF_ROAD);
     }
-    cost_parts.push_back(cost_out_of_lane * FACTOR_OOL);
-    cost_names.push_back("OoL");
+    cost_parts.push_back(cost_road_profile * FACTOR_CRP);
+    cost_names.push_back("CRP");
 
 
     //// TODO: Add a max-jerk cost.
