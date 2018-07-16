@@ -7,7 +7,7 @@
 
 CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, string label, bool heading) {
 
-    const double FACTOR_DISTANCE = 2;
+    const double FACTOR_DISTANCE = 5;
 
     const double CAR_WIDTH = 3;
     const double CAR_LENGTH = 6;
@@ -32,10 +32,10 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     // If goal speed is too close to MAX_SPEED_CONSIDERED,
     // we'll be starved for fast-enough trajectories,
     // and might drop other criteria.
-    const double GOAL_SPEED = 45 * MIPH_TO_MPS;
+    const double GOAL_SPEED = 70 * MIPH_TO_MPS;
     const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
     const double FACTOR_NEGATIVE_SPEED_DEVIATION = .2;
-    const double FACTOR_VDEV = .2;
+    const double FACTOR_VDEV = .3;
 
     const double FACTOR_LANE_SW = .01;
 
@@ -107,19 +107,11 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
 
     //// Find the mean deviation from goal velocity; penalizing larger differences more.
-    double cost_vdeviation = 0;
-    int count = 0;
-    for (double t = 0; t <= plan.t_max(); t += .02) {
-        count++;
-
-        double vdev = plan.speed(t) - GOAL_SPEED;
-        if (vdev > 0)
-            vdev *= FACTOR_POSITIVE_SPEED_DEVIATION;
-        else
-            vdev *= -FACTOR_NEGATIVE_SPEED_DEVIATION;
-        cost_vdeviation += vdev;
-    }
-    cost_vdeviation /= count;
+    double cost_vdeviation = plan.speed(plan.t_max()) - GOAL_SPEED;
+    if (cost_vdeviation > 0)
+        cost_vdeviation *= FACTOR_POSITIVE_SPEED_DEVIATION;
+    else
+        cost_vdeviation *= -FACTOR_NEGATIVE_SPEED_DEVIATION;
     cost_parts.push_back(cost_vdeviation * FACTOR_VDEV);
     cost_names.push_back("vdev");
 

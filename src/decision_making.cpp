@@ -28,11 +28,11 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     log.set_status(LOGGING);
     const bool DEBUG = false;
     double MAX_SPEED_DIFFERENCE = 10;
-    double MIN_SPEED_DIFFERENCE = -20;
+    double MIN_SPEED_DIFFERENCE = -40;
     double MIN_TARGET_SPEED = 1;
-    double MAX_TARGET_SPEED = 50;
+    double MAX_TARGET_SPEED = 80;
     double EXT_TIME = 1;
-    unsigned int NUM_REUSED = 4;
+    unsigned int NUM_REUSED = 8;
     const double TAILGATE_BUFFER = 12;
 
     const double MIN_DT = 2;
