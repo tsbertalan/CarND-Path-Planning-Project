@@ -14,7 +14,7 @@ set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 #    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 #endif()
 
-set(sources src/jmt.cpp src/jmt.h src/utils.h src/decision_making.h src/decision_making.cpp src/coordinates.h src/coordinates.cpp src/neighbor.cpp src/neighbor.h src/trajectory.cpp src/trajectory.h src/graph.h src/utils.cpp src/get_cost.cpp src/spline.cpp src/logger.cpp src/logger.h)
+set(sources src/jmt.cpp src/jmt.h src/utils.h src/decision_making.h src/decision_making.cpp src/coordinates.h src/coordinates.cpp src/neighbor.cpp src/neighbor.h src/trajectory.cpp src/trajectory.h src/graph.h src/utils.cpp src/get_cost.cpp src/spline.cpp src/logger.cpp src/logger.h src/parameters.h src/parameters.cpp)
 
 find_package(PythonLibs REQUIRED)
 

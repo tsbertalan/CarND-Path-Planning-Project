@@ -57,8 +57,6 @@ class Trajectory {
 private:
     std::map<double, double> s_cache, d_cache;
 
-    const static bool DO_CACHE = true;
-
     std::vector<SegmentRemit> segments;
 
     FullState state(double t);

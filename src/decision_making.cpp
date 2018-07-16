@@ -4,6 +4,8 @@
 #include <map>
 #include "decision_making.h"
 
+#include "parameters.h"
+
 using namespace std;
 using namespace std::chrono;
 
@@ -23,21 +25,8 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     vector<string> plan_names;
 
     // TODO: Put all parameters in one header file.
-    int NUM_PLANS = 128;
-    bool SHOW_ALL_PLANS = false;
-    bool LOGGING = false;
     log.set_status(LOGGING);
-    bool DEBUG = false;
-    double MAX_TARGET_SPEED = 47;
-    double MIN_TARGET_SPEED = 1;
-    double MAX_SPEED_DIFFERENCE = 10;
-    double MIN_SPEED_DIFFERENCE = -MAX_TARGET_SPEED + 4;
-    double EXT_TIME = 1;
-    unsigned int NUM_REUSED = 16;
-    double TAILGATE_BUFFER = 12;
 
-    double MIN_DT = 2;
-    double MAX_DT = 3;
 
     double t_reuse = .02 * (last_plan_length - num_unused);
     double t_replan = t_reuse + NUM_REUSED * .02;

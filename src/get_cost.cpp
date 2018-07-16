@@ -4,46 +4,12 @@
 
 #include "decision_making.h"
 
+#include "parameters.h"
+
 
 CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, string label, bool heading) {
 
-    const double FACTOR_DISTANCE = 5;
 
-    const double CAR_WIDTH = 3;
-    const double CAR_LENGTH = 6;
-    const double WWARN_RADIUS = CAR_WIDTH - .5;
-    const double LWARN_RADIUS = CAR_LENGTH + 4;
-
-    const double CRITICAL_DISTANCE_X = LWARN_RADIUS;
-    const double SCALE_DISTANCE_X = .1;
-
-    const double CRITICAL_DISTANCE_Y = WWARN_RADIUS;
-    const double SCALE_DISTANCE_Y = 5;
-
-    const double FACTOR_ACCEL = 1. / 24.;
-    const double FACTOR_JERK = 1. / 96.;
-
-    const double FACTOR_ACCEL_EXCESS = 1;
-    const double CRITICAL_ACCEL_EXCESS = 10;
-
-    const double FACTOR_JERK_EXCESS = 1;
-    const double CRITICAL_JERK_EXCESS = 10;
-
-    // If goal speed is too close to MAX_SPEED_CONSIDERED,
-    // we'll be starved for fast-enough trajectories,
-    // and might drop other criteria.
-    const double GOAL_SPEED = 44 * MIPH_TO_MPS;
-    const double FACTOR_POSITIVE_SPEED_DEVIATION = 1;
-    const double FACTOR_NEGATIVE_SPEED_DEVIATION = .2;
-    const double FACTOR_VDEV = .3;
-
-    const double FACTOR_LANE_SW = .01;
-
-    const double CRITICAL_SWITCHTIME = 500;
-    const double SCALE_SWITCHTIME = .01;
-    const double FACTOR_FASTSW = .4;
-
-    const double FACTOR_OOL = .001;
 
     vector<const char *> cost_names;
     vector<double> cost_parts;

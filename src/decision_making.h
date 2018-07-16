@@ -27,7 +27,7 @@
 
 using namespace std;
 
-const double MIPH_TO_MPS = (5280 / 1.) * (1. / 3.2808) * (1 / 3600.);
+
 
 struct CostDecision {
     double cost;

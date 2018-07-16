@@ -3,6 +3,7 @@
 //
 
 #include "trajectory.h"
+#include "parameters.h"
 
 using namespace std;
 
