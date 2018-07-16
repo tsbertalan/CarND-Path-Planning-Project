@@ -63,9 +63,18 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 //    for (int iplan = 0; iplan < 1; iplan++) {
 
         int plan_target = uniform_random(0, 3);
-        double speed_difference = uniform_random(MIN_SPEED_DIFFERENCE, MAX_SPEED_DIFFERENCE);
-        double target_speed = min(MAX_TARGET_SPEED, max(MIN_TARGET_SPEED,
-                current_speed + speed_difference));
+        double speed_difference = uniform_random(
+                max(
+                        MIN_SPEED_DIFFERENCE,
+                        MIN_TARGET_SPEED - current_speed
+                ),
+                min(
+                        MAX_SPEED_DIFFERENCE,
+                        MAX_TARGET_SPEED - current_speed
+                )
+
+        );
+        double target_speed = current_speed + speed_difference;
         double DT = uniform_random(MIN_DT, MAX_DT);
 
         // DEBUGGING:
@@ -114,7 +123,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 
     vector<double> costs;
     vector<CostDecision> decisions;
-    for(int i=0; i<plans.size(); i++) {
+    for (int i = 0; i < plans.size(); i++) {
         costs.push_back(costsa[i]);
         decisions.push_back(decisionsa[i]);
     }
@@ -144,7 +153,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 
     long end_planner_ms = now();
 //    if (plan_changes_goal(plan) || DEBUG)
-        cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
+    cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
 
 
     // Log the plan.
