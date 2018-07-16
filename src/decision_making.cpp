@@ -92,7 +92,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
         string planName = plan_names[i];
         ostringstream oss;
         string label;
-        if (SHOW_ALL_PLANS) {
+        if (SHOW_COSTS_TABLE) {
             oss << "#" << i << ": " << plan_names[i];
             label = oss.str();
         }
@@ -115,12 +115,12 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     Trajectory plan = plans[best_plan];
     last_plan = plan;
 
-    if (plan_changes_goal(plan) || SHOW_ALL_PLANS || DEBUG)
+    if (plan_changes_goal(plan) || SHOW_COSTS_TABLE || DEBUG)
         cout << "Chose plan " << best_plan << endl << "    " << plan_names[best_plan] << endl;
     CostDecision best_dec = decisions[best_plan];
 
     // Say why we chose.
-    if (plan_changes_goal(plan) || SHOW_ALL_PLANS || DEBUG)
+    if (plan_changes_goal(plan) || SHOW_COSTS_TABLE || DEBUG)
         cout << "    " << declare_reasons(decisions, best_dec) << "." << endl;
 
     // Record the time that a lane switch was planned.
