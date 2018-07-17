@@ -5,9 +5,9 @@
 
 // PLANNER
 int NUM_PLANS = 128;
-bool SHOW_COSTS_TABLE = true;
+bool SHOW_COSTS_TABLE = false;
 bool LOGGING = false;
-bool DEBUG = false;
+bool DEBUG = true;
 double MAX_TARGET_SPEED = 47;
 double MIN_TARGET_SPEED = 1;
 double MAX_SPEED_DIFFERENCE = 10;

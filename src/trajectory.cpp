@@ -79,12 +79,6 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
 void Trajectory::cut_start(double t_reuse, double t_replan) {
 
   // Cut off some of our current path segments.
-  bool many_segments = segments.size() > 2;
-  if (many_segments) {
-    system("pgrep --full 'trajectory_plot' | xargs kill &");
-    plot(t_reuse, t_replan);
-    cout << "plotted." << endl;
-  }
   vector<SegmentRemit> new_segments;
   for (SegmentRemit remit : segments) {
 
@@ -119,11 +113,6 @@ void Trajectory::cut_start(double t_reuse, double t_replan) {
 
   // Save the new, trimmed segments.
   segments = move(new_segments);
-  if (many_segments) {
-    plot(0, t_replan - t_reuse);
-    cout << "plotted." << endl;
-  }
-  string unused = "threeve";
 }
 
 double Trajectory::t_max() {

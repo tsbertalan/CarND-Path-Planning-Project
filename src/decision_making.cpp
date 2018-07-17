@@ -42,9 +42,6 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 
     Trajectory plan = random_plan(current_speed, current_frenet, t_reuse, t_replan, last_plan);
 
-    State s_end = {.y=(current_speed + target_speed)/2*DT, .yp=target_speed, .ypp=0};
-    State d_end = {.y=plan_target, .yp=0, .ypp=0};
-
     plan_names.push_back(describe_plan(plan, current_speed, plan.speed(plan.t_max()), plan.t_max()));
     plans.push_back(std::move(plan));
   }
@@ -207,57 +204,69 @@ Planner::Planner(CoordinateTransformer &transform) : transform(transform), log(P
 void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors) {
 
   WorldPose ego_now = plans[0].world(0);
-
   transform.set_reference(ego_now);
+  double s_now = transform.to_frenet(ego_now).s;
 
   const double DIST_VIZ_CAP = 30.;
 
-  int iplan = -1;
-  vector<vector<double>> X, Y, T, C;
+  vector<vector<double>> S, D, T, C;
   vector<string> styles;
-  for (auto plan: plans) {
-    iplan++;
-    vector<double> x, y, t, c;
+
+  vector<int> selected_plans;
+  for (int iplan = 0; iplan < 10; iplan++) {
+    int selection = uniform_random(0, plans.size());
+    if (std::find(selected_plans.begin(), selected_plans.end(), selection)==selected_plans.end()) {
+      selected_plans.push_back(selection);
+    }
+  }
+
+  for (int selection : selected_plans) {
+    Trajectory plan = plans[selection];
+    vector<double> s, d, t, c;
     for (double t = 0; t <= plan.t_max(); t += .02) {
-      CarPose cp = transform.to_car(plan.frenet(t));
-      x.push_back(cp.x);
-      y.push_back(cp.y);
+      FrenetPose fp = plan.frenet(t);
+      s.push_back(fp.s - s_now);
+      d.push_back(fp.d);
     }
     for (double tv = 0; tv <= plan.t_max(); tv += .02) {
       t.push_back(tv);
       c.push_back(0);
     }
-    X.push_back(x);
-    Y.push_back(y);
+    S.push_back(s);
+    D.push_back(d);
     T.push_back(t);
     C.push_back(c);
     styles.push_back("lines");
   }
 
-  double s_now = transform.to_frenet(ego_now).s;
 
   for (auto n: neighbors) {
-    vector<double> x, y, c;
+    vector<double> s, d, c;
+
+    // Don't process guys we've passed.
+    if (n.current_fp.s - s_now < CAR_LENGTH*2)
+      continue;
+
     for (double t = 0; t <= plans[0].t_max(); t += .02) {
-      WorldPose other = n.future_position(t);
-      CarPose cp = transform.to_car(other);
-      x.push_back(cp.x);
-      y.push_back(cp.y);
+      FrenetPose other = n.future_position_frenet(t);
+      s.push_back(other.s - s_now);
+      d.push_back(other.d);
       double min_dist = 9999;
-      for (auto p : plans) {
-        min_dist = min(min_dist, get_world_dist(other, p.world(t)));
+      for (int selection : selected_plans) {
+        FrenetPose fp = plans[selection].frenet(t);
+        min_dist = min(min_dist, distance(other.s, other.d, fp.s, fp.d));
       }
       c.push_back(min(min_dist, DIST_VIZ_CAP));
     }
     styles.push_back("lines");
-    X.push_back(x);
-    Y.push_back(y);
+    S.push_back(s);
+    D.push_back(d);
     C.push_back(c);
   }
 
   map_plot.plot_data(
-      X, Y,
-      "x [m] (car)", "y [m] (car)", styles, "plans and neighbor projections", "capped dist to nearest plan",
+      S, D,
+      "s [m]", "d [m]", styles, "some plans and neighbor projections", "capped dist to nearest plan",
       C
   );
 

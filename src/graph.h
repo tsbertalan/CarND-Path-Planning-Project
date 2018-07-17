@@ -9,6 +9,8 @@
 #include <algorithm>
 #include "utils.h"
 
+#include <sstream>
+
 using namespace std;
 #define GRAPH_ENABLED true
 
@@ -56,7 +58,7 @@ class plot {
                  const char *xlabel, const char *ylabel,
                  vector<string> styles = {"points"},
                  const char *title = "Data", const char *cblabel = "", vector<vector<double>> C = {{}},
-                 vector<double> ylims = {-12, 12}, vector<double> xlims = {0, 160}
+                 vector<double> ylims = {12, 0}, vector<double> xlims = {0, 72}
   ) {
     if (!enabled)
       return;
@@ -82,6 +84,19 @@ class plot {
       fprintf(gp, "set yrange [%f:%f] \n", ylims[0], ylims[1]);
     else
       fprintf(gp, "set yrange [%f:%f] \n", min(lows_y), max(highs_y));
+
+    // Try to make the figure size roughly proprotional to the limits.
+    if (xlims.size()==2 && ylims.size()==2) {
+      double dx = abs(xlims[1] - xlims[0]);
+      double dy = abs(ylims[1] - ylims[0]);
+      cout << "dx=" << dx << ", dy=" << dy << endl;
+      double width, height;
+      height = 300;
+      width = min(1900., dx/dy*height);
+      ostringstream oss;
+      oss << "set terminal x11 size " << (int) width << "," << (int) height << " \n";
+      fprintf(gp, "%s", oss.str().c_str());
+    }
 
     fprintf(gp, "set palette rgb 33,13,10 \n");
     fprintf(gp, "set key off \n");
