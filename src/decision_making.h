@@ -101,6 +101,11 @@ class Planner {
 
   string declare_reasons(vector<CostDecision> &decisions, CostDecision &decision);
 
+  Trajectory random_plan(double current_speed,
+                         const FrenetPose current_frenet,
+                         double t_reuse,
+                         double t_replan,
+                         Trajectory &starting_plan);
 };
 
 #endif //PATH_PLANNING_DECISION_MAKING_H

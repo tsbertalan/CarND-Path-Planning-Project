@@ -40,46 +40,12 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   FrenetPose current_frenet = transform.to_frenet(current);
   for (int iplan = 0; iplan < NUM_PLANS; iplan++) {
 
-    int target_lane = uniform_random(0, 3);
-
-    double plan_target;
-    switch (target_lane) {
-      case 0:plan_target = LANE_DEFINITION_LEFT;
-        break;
-      case 1:plan_target = LANE_DEFINITION_CENTER;
-        break;
-      case 2:plan_target = LANE_DEFINITION_RIGHT;
-        break;
-    }
-
-    double speed_difference = uniform_random(
-        max(
-            MIN_SPEED_DIFFERENCE,
-            MIN_TARGET_SPEED - current_speed
-        ),
-        min(
-            MAX_SPEED_DIFFERENCE,
-            MAX_TARGET_SPEED - current_speed
-        )
-
-    );
-    double target_speed = current_speed + speed_difference;
-    double DT = uniform_random(MIN_DT, MAX_DT);
+    Trajectory plan = random_plan(current_speed, current_frenet, t_reuse, t_replan, last_plan);
 
     State s_end = {.y=(current_speed + target_speed)/2*DT, .yp=target_speed, .ypp=0};
     State d_end = {.y=plan_target, .yp=0, .ypp=0};
 
-    Trajectory plan = last_plan.generate_extension(
-        current_frenet,
-        t_reuse,
-        t_replan,
-        DT,
-        -1,
-        target_speed,
-        plan_target
-    );
-
-    plan_names.push_back(describe_plan(plan, current_speed, target_speed, DT));
+    plan_names.push_back(describe_plan(plan, current_speed, plan.speed(plan.t_max()), plan.t_max()));
     plans.push_back(std::move(plan));
   }
 
@@ -174,6 +140,56 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   auto next_xy_vals = plan.decompose(EXT_TIME);
   last_plan_length = next_xy_vals[0].size();
   return next_xy_vals;
+}
+
+Trajectory Planner::random_plan(double current_speed,
+                                const FrenetPose current_frenet,
+                                double t_reuse,
+                                double t_replan,
+                                Trajectory &starting_plan) {
+
+  // Choose the final lane and therefore d.
+  int target_lane = uniform_random(0, 3);
+  double plan_target;
+  switch (target_lane) {
+    case 0:plan_target = LANE_DEFINITION_LEFT;
+      break;
+    case 1:plan_target = LANE_DEFINITION_CENTER;
+      break;
+    case 2:plan_target = LANE_DEFINITION_RIGHT;
+      break;
+  }
+
+  // Choose the final speed.
+  double speed_difference = uniform_random(
+      max(
+          MIN_SPEED_DIFFERENCE,
+          MIN_TARGET_SPEED - current_speed
+      ),
+      min(
+          MAX_SPEED_DIFFERENCE,
+          MAX_TARGET_SPEED - current_speed
+      )
+
+  );
+  double target_speed = current_speed + speed_difference;
+
+  // Choose the duration.
+  double DT = uniform_random(MIN_DT, MAX_DT);
+
+  // Make the plan.
+  Trajectory plan = starting_plan.generate_extension(
+      current_frenet,
+      t_reuse,
+      t_replan,
+      DT,
+      -1,
+      target_speed,
+      plan_target
+  );
+
+  return plan;
+
 }
 
 long Planner::now() {
