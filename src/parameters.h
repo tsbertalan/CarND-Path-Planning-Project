@@ -46,12 +46,13 @@ extern double DISTANCE_ZERO_COST_LEAD;
 extern double FACTOR_ACCEL;
 
 extern double FACTOR_JERK;
+
 extern double FACTOR_ACCEL_EXCESS;
-
 extern double CRITICAL_ACCEL_EXCESS;
-extern double FACTOR_JERK_EXCESS;
 
+extern double FACTOR_JERK_EXCESS;
 extern double CRITICAL_JERK_EXCESS;
+
 // If goal speed is too close to MAX_SPEED_CONSIDERED,
 // we'll be starved for fast-enough trajectories,
 // and might drop other criteria.
