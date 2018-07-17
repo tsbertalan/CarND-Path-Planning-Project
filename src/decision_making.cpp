@@ -24,7 +24,6 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   vector<Trajectory> plans;
   vector<string> plan_names;
 
-  // TODO: Put all parameters in one header file.
   log.set_status(LOGGING);
 
   double t_reuse = .02*(last_plan_length - num_unused);
@@ -48,9 +47,8 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 
 
   // Evaluate costs.
-  double costsa[plans.size()];
-  CostDecision decisionsa[plans.size()];
-
+  double costs_arr[plans.size()]; // Use arrays to allow for OpenMP.
+  CostDecision decisions_arr[plans.size()];
   //#pragma omp parallel for
   cost_evaluation_time = now();
   for (int i = 0; i < plans.size(); i++) {
@@ -63,15 +61,15 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
       label = oss.str();
     }
     CostDecision decision = get_cost(plan, neighbors, label, i==0);
-    costsa[i] = decision.cost;
-    decisionsa[i] = decision;
+    costs_arr[i] = decision.cost;
+    decisions_arr[i] = decision;
   }
 
   vector<double> costs;
   vector<CostDecision> decisions;
   for (int i = 0; i < plans.size(); i++) {
-    costs.push_back(costsa[i]);
-    decisions.push_back(decisionsa[i]);
+    costs.push_back(costs_arr[i]);
+    decisions.push_back(decisions_arr[i]);
   }
 
 
@@ -104,7 +102,6 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
 
   // Log the plan.
   if (LOGGING) {
-//        log("prev", "leftover", leftover.subtrajectory(NUM_REUSED + 1, 0, dt));
     log("t_reuse", t_reuse);
     log("t_replan", t_replan);
     log("num_unused", num_unused);
@@ -171,6 +168,9 @@ Trajectory Planner::random_plan(double current_speed,
   );
   double target_speed = current_speed + speed_difference;
 
+  // Optionally add some extra reuse time.
+  double t_reuse_extra = uniform_random(0., 1.);
+
   // Choose the duration.
   double DT = uniform_random(MIN_DT, MAX_DT);
 
@@ -178,7 +178,7 @@ Trajectory Planner::random_plan(double current_speed,
   Trajectory plan = starting_plan.generate_extension(
       current_frenet,
       t_reuse,
-      t_replan,
+      t_replan + t_reuse_extra,
       DT,
       -1,
       target_speed,
