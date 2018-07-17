@@ -27,4 +27,6 @@ std::vector<unsigned long> argsort(std::vector<int> v);
 
 double expit(double x, double x_critical, double scale_factor = 1);
 
+double line(double x, double x1, double y1, double x2, double y2);;
+
 #endif //PATH_PLANNING_UTILS_H

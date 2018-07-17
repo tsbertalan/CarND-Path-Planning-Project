@@ -39,11 +39,8 @@ extern double LWARN_RADIUS;
 
 extern double PENALTY_FATAL;
 
-extern double CRITICAL_DISTANCE_X;
-extern double SCALE_DISTANCE_X;
-
-extern double CRITICAL_DISTANCE_Y;
-extern double SCALE_DISTANCE_Y;
+extern double DISTANCE_ZERO_COST_FOLLOW;
+extern double DISTANCE_ZERO_COST_LEAD;
 
 extern double FACTOR_ACCEL;
 extern double FACTOR_JERK;

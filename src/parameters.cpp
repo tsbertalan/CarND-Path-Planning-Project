@@ -5,7 +5,7 @@
 
 // PLANNER
 int NUM_PLANS = 128;
-bool SHOW_COSTS_TABLE = false;
+bool SHOW_COSTS_TABLE = true;
 bool LOGGING = false;
 bool DEBUG = false;
 double MAX_TARGET_SPEED = 47;
@@ -30,12 +30,13 @@ bool DO_CACHE = true;
 // COST
 double FACTOR_DISTANCE = 5;
 
-double CAR_WIDTH = 2.5;
+double CAR_WIDTH = 2.25;
 double CAR_LENGTH = 4;
 
 double PENALTY_FATAL = 10;
 
-double SCALE_DISTANCE_X = .1;
+double DISTANCE_ZERO_COST_FOLLOW = -40;
+double DISTANCE_ZERO_COST_LEAD = 10;
 
 double FACTOR_ACCEL = 1./45.;
 double FACTOR_JERK = 1./96.;

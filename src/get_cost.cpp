@@ -52,9 +52,9 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
       } else {
         // Following or being followed is linearly costly with s-distance.
         if (ds > 0)
-          cost = max(1 - (ds - CAR_LENGTH)*SCALE_DISTANCE_X, 0.);
+          cost = max(line(ds, CAR_LENGTH, 1, CAR_LENGTH + DISTANCE_ZERO_COST_LEAD, 0), 0.);
         else
-          cost = max(1 + (ds - CAR_LENGTH)*SCALE_DISTANCE_X, 0.);
+          cost = max(line(ds, -CAR_LENGTH, 1, -CAR_LENGTH + DISTANCE_ZERO_COST_FOLLOW, 0), 0.);
       }
 
       if (cost > cost_dist) {
@@ -121,10 +121,6 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   double cost_road_profile = 0;
 
   // Construct the cost piecewise from lines.
-  auto line = [](double x, double x1, double y1, double x2, double y2) {
-    return (y2 - y1)/(x2 - x1)*(x - x1) + y1;
-  };
-
   for (double t = 0; t <= plan.t_max(); t += .02) {
     double d = plan.d(t);
     if (d < 0)
