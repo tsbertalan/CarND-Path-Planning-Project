@@ -48,11 +48,6 @@ class Planner {
 
   long cost_evaluation_time;
 
- public:
-  int getCurrent_lane() const;
-
-  int getGoal_lane() const;
-
  private:
   long last_lane_change_time_ms;
 
@@ -61,8 +56,6 @@ class Planner {
   int get_lane(FrenetPose fp);
 
   int get_lane(WorldPose wp);
-
-  bool cross_lane_plan(Trajectory &plan);
 
   long construction_time;
 

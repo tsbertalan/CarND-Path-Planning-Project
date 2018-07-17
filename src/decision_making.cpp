@@ -283,14 +283,7 @@ int Planner::uniform_random(int low, int high_plus_one) {
 
 bool Planner::plan_changes_goal(Trajectory &plan) {
   int plan_goal_lane = get_lane(plan);
-  int old_goal_lane = goal_lane;
   return plan_goal_lane!=goal_lane;
-}
-
-bool Planner::cross_lane_plan(Trajectory &plan) {
-  int plan_goal_lane = get_lane(plan);
-  int old_goal_lane = goal_lane;
-  return plan_goal_lane!=current_lane;
 }
 
 string Planner::describe_plan(Trajectory &plan, double current_speed, double target_speed, double DT) {

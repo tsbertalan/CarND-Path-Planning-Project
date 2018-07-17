@@ -10,6 +10,10 @@ extern int NUM_PLANS;
 extern bool SHOW_COSTS_TABLE;
 extern bool LOGGING;
 extern bool DEBUG;
+
+extern double MIPH_TO_MPS;
+
+extern double GOAL_SPEED_MPH;
 extern double MAX_TARGET_SPEED;
 extern double MIN_TARGET_SPEED;
 extern double MAX_SPEED_DIFFERENCE;
@@ -24,8 +28,6 @@ extern double LANE_DEFINITION_LEFT;
 extern double LANE_DEFINITION_CENTER;
 
 extern double LANE_DEFINITION_RIGHT;
-
-extern double MIPH_TO_MPS;
 
 // TRAJECTORY GENERATION
 extern bool DO_CACHE;
