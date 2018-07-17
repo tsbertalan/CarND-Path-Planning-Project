@@ -99,6 +99,7 @@ class Planner {
                          double t_reuse,
                          double t_replan,
                          Trajectory &starting_plan);
+  double in_bad_region_pseudobool(double s) const;
 };
 
 #endif //PATH_PLANNING_DECISION_MAKING_H

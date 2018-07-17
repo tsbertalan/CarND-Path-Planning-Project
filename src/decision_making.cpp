@@ -90,7 +90,6 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   // Record the time that a lane switch was planned.
   if (plan_changes_goal(plan)) {
     last_lane_change_time_ms = now();
-    cout << " ------------------------ LANE CHANGE ------------------------ " << endl;
   }
 
   if (DEBUG) show_map(plans, neighbors, costs);
@@ -151,6 +150,8 @@ Trajectory Planner::random_plan(double current_speed,
     case 1:plan_target = LANE_DEFINITION_CENTER;
       break;
     case 2:plan_target = LANE_DEFINITION_RIGHT;
+      // In the bad region of the map, drift a little to the left.
+      plan_target += in_bad_region_pseudobool(current_frenet.s)*BAD_MAP_DRIFT_LEFT;
       break;
   }
 

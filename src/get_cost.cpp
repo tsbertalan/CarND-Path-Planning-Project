@@ -125,7 +125,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     double d = plan.d(t);
     double s = plan.s(t);
     // Hard-code in a problem area in the map to be avoided.
-    double variable_bad_map_penalty = (expit(s, BAD_MAP_BEGIN, .2) - expit(s, BAD_MAP_END, .2))*PENALTY_BAD_MAP;
+    double variable_bad_map_penalty = (in_bad_region_pseudobool(s))*PENALTY_BAD_MAP;
     if (d < 0)
       cost_road_profile += line(d, -1, PENALTY_OFF_ROAD, 0, PENALTY_LINE_SOLID);
     else if (d < 2)
@@ -199,4 +199,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
   CostDecision cd = {.cost=cost, .reason=reason, .cost_parts=cost_parts, .cost_part_names=cost_names};
   return cd;
+}
+double Planner::in_bad_region_pseudobool(double s) const {
+  return expit(s, BAD_MAP_BEGIN, .2) - expit(s, BAD_MAP_END, .2);
 }
