@@ -13,13 +13,14 @@ double MIN_TARGET_SPEED = 1;
 double MAX_SPEED_DIFFERENCE = 10;
 double MIN_SPEED_DIFFERENCE = -MAX_TARGET_SPEED + 4;
 double EXT_TIME = 1;
+
 unsigned int NUM_REUSED = 16;
-
 double MIN_DT = 2;
-double MAX_DT = 3;
 
+double MAX_DT = 3;
 double LANE_DEFINITION_LEFT = 2.1;
 double LANE_DEFINITION_CENTER = 6;
+
 double LANE_DEFINITION_RIGHT = 9.9;
 
 double MIPH_TO_MPS = (5280/1.)*(1./3.2808)*(1/3600.);
@@ -60,10 +61,15 @@ double FACTOR_FASTSW = .4;
 
 double FACTOR_CRP = .003;
 double PENALTY_LANE_LEFT = .25;
-double PENALTY_LANE_RIGHT = .25;
+double PENALTY_LANE_CENTER = 0;
+double PENALTY_LANE_RIGHT = .35;
 double PENALTY_LINE_SOLID = 2;
 double PENALTY_LINE_DASHED = .5;
 double PENALTY_OFF_ROAD = 10;
+
+double BAD_MAP_BEGIN = 4900;
+double BAD_MAP_END = 5080;
+double PENALTY_BAD_MAP = 2;
 
 // VISUALIZESR
 double COST_VIZ_CAP = 10.;

@@ -123,6 +123,9 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   // Construct the cost piecewise from lines.
   for (double t = 0; t <= plan.t_max(); t += .02) {
     double d = plan.d(t);
+    double s = plan.s(t);
+    // Hard-code in a problem area in the map to be avoided.
+    double variable_bad_map_penalty = (expit(s, BAD_MAP_BEGIN, .2) - expit(s, BAD_MAP_END, .2))*PENALTY_BAD_MAP;
     if (d < 0)
       cost_road_profile += line(d, -1, PENALTY_OFF_ROAD, 0, PENALTY_LINE_SOLID);
     else if (d < 2)
@@ -130,15 +133,21 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     else if (d < 4)
       cost_road_profile += line(d, LANE_DEFINITION_LEFT, PENALTY_LANE_LEFT, 4, PENALTY_LINE_DASHED);
     else if (d < 6)
-      cost_road_profile += line(d, 4, PENALTY_LINE_DASHED, LANE_DEFINITION_CENTER, 0);
+      cost_road_profile += line(d, 4, PENALTY_LINE_DASHED, LANE_DEFINITION_CENTER, PENALTY_LANE_CENTER);
     else if (d < 8)
-      cost_road_profile += line(d, LANE_DEFINITION_CENTER, 0, 8, PENALTY_LINE_DASHED);
+      cost_road_profile += line(d, LANE_DEFINITION_CENTER, PENALTY_LANE_CENTER, 8, PENALTY_LINE_DASHED);
     else if (d < 10)
-      cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, LANE_DEFINITION_RIGHT, PENALTY_LANE_RIGHT);
+      cost_road_profile +=
+          line(d, 8, PENALTY_LINE_DASHED, LANE_DEFINITION_RIGHT, PENALTY_LANE_RIGHT + variable_bad_map_penalty);
     else if (d < 12)
-      cost_road_profile += line(d, LANE_DEFINITION_RIGHT, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
+      cost_road_profile += line(d,
+                                LANE_DEFINITION_RIGHT,
+                                PENALTY_LANE_RIGHT + variable_bad_map_penalty,
+                                12,
+                                PENALTY_LINE_SOLID + variable_bad_map_penalty);
     else
-      cost_road_profile += line(d, 12, PENALTY_LINE_SOLID, 13, PENALTY_OFF_ROAD);
+      cost_road_profile +=
+          line(d, 12, PENALTY_LINE_SOLID + variable_bad_map_penalty, 13, PENALTY_OFF_ROAD + variable_bad_map_penalty);
   }
   cost_parts.push_back(cost_road_profile*FACTOR_CRP);
   cost_names.push_back("CRP");

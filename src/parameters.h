@@ -15,13 +15,14 @@ extern double MIN_TARGET_SPEED;
 extern double MAX_SPEED_DIFFERENCE;
 extern double MIN_SPEED_DIFFERENCE;
 extern double EXT_TIME;
+
 extern unsigned int NUM_REUSED;
-
 extern double MIN_DT;
-extern double MAX_DT;
 
+extern double MAX_DT;
 extern double LANE_DEFINITION_LEFT;
 extern double LANE_DEFINITION_CENTER;
+
 extern double LANE_DEFINITION_RIGHT;
 
 extern double MIPH_TO_MPS;
@@ -67,10 +68,15 @@ extern double FACTOR_FASTSW;
 
 extern double FACTOR_CRP;
 extern double PENALTY_LANE_LEFT;
+extern double PENALTY_LANE_CENTER;
 extern double PENALTY_LANE_RIGHT;
 extern double PENALTY_LINE_SOLID;
 extern double PENALTY_LINE_DASHED;
 extern double PENALTY_OFF_ROAD;
+
+extern double BAD_MAP_BEGIN;
+extern double BAD_MAP_END;
+extern double PENALTY_BAD_MAP;
 
 extern double COST_VIZ_CAP;
 extern int NUM_PLANS_VISUALIZED;
