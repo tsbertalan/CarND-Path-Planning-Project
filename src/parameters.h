@@ -72,4 +72,8 @@ extern double PENALTY_LINE_SOLID;
 extern double PENALTY_LINE_DASHED;
 extern double PENALTY_OFF_ROAD;
 
+extern double COST_VIZ_CAP;
+extern int NUM_PLANS_VISUALIZED;
+extern double VIS_S_THRESHOLD;
+
 #endif //PATH_PLANNING_PARAMETERS_H

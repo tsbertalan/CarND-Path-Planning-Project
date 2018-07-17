@@ -95,7 +95,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     cout << " ------------------------ LANE CHANGE ------------------------ " << endl;
   }
 
-  if (DEBUG) show_map(plans, neighbors);
+  if (DEBUG) show_map(plans, neighbors, costs);
 
   long end_planner_ms = now();
   if (plan_changes_goal(plan) || DEBUG)
@@ -201,19 +201,18 @@ Planner::Planner(CoordinateTransformer &transform) : transform(transform), log(P
   last_plan_length = 0;
 }
 
-void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors) {
+void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors, vector<double> costs) {
 
   WorldPose ego_now = plans[0].world(0);
   transform.set_reference(ego_now);
   double s_now = transform.to_frenet(ego_now).s;
 
-  const double DIST_VIZ_CAP = 30.;
-
   vector<vector<double>> S, D, T, C;
   vector<string> styles;
 
+  // Make a random selection.
   vector<int> selected_plans;
-  for (int iplan = 0; iplan < 10; iplan++) {
+  for (int iplan = 0; iplan < NUM_PLANS_VISUALIZED; iplan++) {
     int selection = uniform_random(0, plans.size());
     if (std::find(selected_plans.begin(), selected_plans.end(), selection)==selected_plans.end()) {
       selected_plans.push_back(selection);
@@ -222,6 +221,7 @@ void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors) {
 
   for (int selection : selected_plans) {
     Trajectory plan = plans[selection];
+    double cost = costs[selection];
     vector<double> s, d, t, c;
     for (double t = 0; t <= plan.t_max(); t += .02) {
       FrenetPose fp = plan.frenet(t);
@@ -230,7 +230,7 @@ void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors) {
     }
     for (double tv = 0; tv <= plan.t_max(); tv += .02) {
       t.push_back(tv);
-      c.push_back(0);
+      c.push_back(min(cost, COST_VIZ_CAP));
     }
     S.push_back(s);
     D.push_back(d);
@@ -244,29 +244,26 @@ void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors) {
     vector<double> s, d, c;
 
     // Don't process guys we've passed.
-    if (n.current_fp.s - s_now < CAR_LENGTH*2)
+    if (n.current_fp.s - s_now < VIS_S_THRESHOLD)
       continue;
 
     for (double t = 0; t <= plans[0].t_max(); t += .02) {
       FrenetPose other = n.future_position_frenet(t);
       s.push_back(other.s - s_now);
       d.push_back(other.d);
-      double min_dist = 9999;
-      for (int selection : selected_plans) {
-        FrenetPose fp = plans[selection].frenet(t);
-        min_dist = min(min_dist, distance(other.s, other.d, fp.s, fp.d));
-      }
-      c.push_back(min(min_dist, DIST_VIZ_CAP));
+      c.push_back(COST_VIZ_CAP);
     }
-    styles.push_back("lines");
+    styles.push_back("points");
     S.push_back(s);
     D.push_back(d);
     C.push_back(c);
   }
 
+  ostringstream cost_label;
+  cost_label << "plan cost (capped at " << COST_VIZ_CAP << ")";
   map_plot.plot_data(
       S, D,
-      "s [m]", "d [m]", styles, "some plans and neighbor projections", "capped dist to nearest plan",
+      "s [m]", "d [m]", styles, "some plans and neighbor projections", cost_label.str().c_str(),
       C
   );
 

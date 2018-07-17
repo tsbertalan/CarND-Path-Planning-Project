@@ -87,7 +87,7 @@ class Planner {
       const double dt = .02
   );
 
-  void show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors);
+  void show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors, vector<double> costs);
 
   CostDecision get_cost(Trajectory &plan, vector<Neighbor> neighbors, string label = "", bool heading = false);
 
