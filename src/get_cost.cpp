@@ -160,10 +160,12 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
   //// Add a max-accel cost.
   cost_parts.push_back((double) (max_accel > CRITICAL_ACCEL_EXCESS)*FACTOR_ACCEL_EXCESS);
+  cost_names.push_back("maxaccel");
 
 
   //// Add a max-jerk cost.
   cost_parts.push_back((double) (max_jerk > CRITICAL_JERK_EXCESS)*FACTOR_JERK_EXCESS);
+  cost_names.push_back("maxjerk");
 
 
   //// TODO: Add a distance-traveled negative cost.
