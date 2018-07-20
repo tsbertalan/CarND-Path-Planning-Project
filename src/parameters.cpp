@@ -32,12 +32,14 @@ bool DO_CACHE = true;
 // COST
 double FACTOR_DISTANCE = 7;
 
-double CAR_WIDTH = 2.25;
+double CAR_WIDTH = 116. * 4. / 176.;
+double CAR_LENGTH = 214. * 4. / 176.;
 
 double PENALTY_FATAL = 10;
 
-double DISTANCE_ZERO_COST_FOLLOW = -60;
-double DISTANCE_ZERO_COST_LEAD = 20;
+double DISTANCE_ZERO_COST_FOLLOW = -6 * CAR_LENGTH;
+double DISTANCE_ZERO_COST_LEAD = 4 * CAR_LENGTH;
+double DISTANCE_ZERO_COST_BESIDE = .189 * CAR_WIDTH;
 
 double FACTOR_ACCEL = 1./32.;
 double FACTOR_JERK = 1./96.;
