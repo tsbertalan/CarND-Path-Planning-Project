@@ -18,7 +18,7 @@ double MAX_SPEED_DIFFERENCE = 10;
 double MIN_SPEED_DIFFERENCE = -MAX_TARGET_SPEED + 1;
 double EXT_TIME = 1;
 
-unsigned int NUM_REUSED = 16;
+double MIN_REUSE_TIME = 16 * .02;
 double MIN_DT = 2;
 
 double MAX_DT = 3;

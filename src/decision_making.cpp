@@ -27,7 +27,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   log.set_status(LOGGING);
 
   double t_reuse = .02*(last_plan_length - num_unused);
-  double t_replan = t_reuse + NUM_REUSED*.02;
+    double t_replan = t_reuse + MIN_REUSE_TIME;
   if (last_plan.t_max() < t_replan)
     t_replan = last_plan.t_max();
 
