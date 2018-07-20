@@ -20,7 +20,7 @@ extern double MAX_SPEED_DIFFERENCE;
 extern double MIN_SPEED_DIFFERENCE;
 extern double EXT_TIME;
 
-extern unsigned int NUM_REUSED;
+extern double MIN_REUSE_TIME;
 extern double MIN_DT;
 
 extern double MAX_DT;
@@ -41,10 +41,10 @@ extern double LWARN_RADIUS;
 extern double PENALTY_FATAL;
 
 extern double DISTANCE_ZERO_COST_FOLLOW;
-
 extern double DISTANCE_ZERO_COST_LEAD;
-extern double FACTOR_ACCEL;
+extern double DISTANCE_ZERO_COST_BESIDE;
 
+extern double FACTOR_ACCEL;
 extern double FACTOR_JERK;
 
 extern double FACTOR_ACCEL_EXCESS;
@@ -58,9 +58,13 @@ extern double CRITICAL_JERK_EXCESS;
 // and might drop other criteria.
 extern double GOAL_SPEED;
 
-extern double FACTOR_POSITIVE_SPEED_DEVIATION;
-extern double FACTOR_NEGATIVE_SPEED_DEVIATION;
+extern double SPEED_LIMIT;
+extern double VDEV_MID;
+extern double SPEED_COST_ZERO;
+extern double SPEED_COST_MID;
+extern double SPEED_COST_LIMIT;
 extern double FACTOR_VDEV;
+
 extern double FACTOR_LANE_SW;
 
 extern double CRITICAL_SWITCHTIME;

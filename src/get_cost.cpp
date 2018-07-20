@@ -12,13 +12,10 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   vector<double> cost_parts;
 
 
-  // TODO: Reformulate costs as [0,1]-valued functions.
-
   // TODO: Interleave all time-dependent costs in one loop.
 
 
   //// Check whether the plan entails likely collisions.
-  // TODO: Analyze and consider side-swipe scenarios.
   // TODO: Put neighbor loop inside time loop, for interleaving with other time-dependent costs.
   // TODO: Apply a discount factor for cost borne further in the future.
   double cost_dist = 0;
@@ -33,7 +30,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
       double ds = fabs(s - other.s);
       double dd = fabs(d - other.d);
 
-      double cost;
+        double cost = 1;
 
       if (
         // Treat collisions as fatal.
@@ -45,16 +42,24 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
           ) {
         cost = PENALTY_FATAL;
 
-      } else if (dd < -CAR_WIDTH || dd > CAR_WIDTH) {
-        // Passing is fine.
-        cost = 0;
+//     } else if (dd < -CAR_WIDTH || dd > CAR_WIDTH) {
+//        // Passing is fine.
+//        cost = 0;
 
       } else {
+          // Passing is mostly fine.
+          cost *= max(0., min(1.,
+                              line(dd, -CAR_WIDTH - DISTANCE_ZERO_COST_BESIDE, 0, -CAR_WIDTH, 1)
+          ));
+          cost *= max(0., min(1.,
+                              line(dd, CAR_WIDTH + DISTANCE_ZERO_COST_BESIDE, 0, CAR_WIDTH, 1)
+          ));
+
         // Following or being followed is linearly costly with s-distance.
         if (ds > 0)
-          cost = max(line(ds, CAR_LENGTH, 1, CAR_LENGTH + DISTANCE_ZERO_COST_LEAD, 0), 0.);
+            cost *= max(line(ds, CAR_LENGTH, 1, CAR_LENGTH + DISTANCE_ZERO_COST_LEAD, 0), 0.);
         else
-          cost = max(line(ds, -CAR_LENGTH, 1, -CAR_LENGTH + DISTANCE_ZERO_COST_FOLLOW, 0), 0.);
+            cost *= max(line(ds, -CAR_LENGTH, 1, -CAR_LENGTH + DISTANCE_ZERO_COST_FOLLOW, 0), 0.);
       }
 
       if (cost > cost_dist) {
@@ -93,12 +98,17 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
 
   //// Find the mean deviation from goal velocity; penalizing larger differences more.
-  double cost_vdeviation = plan.speed(plan.t_max()) - GOAL_SPEED;
-  if (cost_vdeviation > 0)
-    cost_vdeviation *= FACTOR_POSITIVE_SPEED_DEVIATION;
-  else
-    cost_vdeviation *= -FACTOR_NEGATIVE_SPEED_DEVIATION;
-  cost_parts.push_back(cost_vdeviation*FACTOR_VDEV);
+    double dv = plan.speed(plan.t_max()) - GOAL_SPEED;
+    double cost_v_deviation;
+    if (dv < 0) {
+        if (dv < VDEV_MID)
+            cost_v_deviation = line(dv, VDEV_MID, SPEED_COST_MID, -GOAL_SPEED, SPEED_COST_ZERO);
+        else
+            cost_v_deviation = line(dv, 0, 0, VDEV_MID, SPEED_COST_MID);
+    } else
+        cost_v_deviation = line(dv, 0, 0, SPEED_LIMIT - GOAL_SPEED, SPEED_COST_LIMIT);
+
+    cost_parts.push_back(cost_v_deviation * FACTOR_VDEV);
   cost_names.push_back("vdev");
 
 
@@ -131,6 +141,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     double d = plan.d(t);
     double s = plan.s(t);
     // Hard-code in a problem area in the map to be avoided.
+      double variable_right_lane_definition = in_bad_region_pseudobool(s) * BAD_MAP_DRIFT_LEFT + LANE_DEFINITION_RIGHT;
     if (d < 0)
       cost_road_profile += line(d, -1, PENALTY_OFF_ROAD, 0, PENALTY_LINE_SOLID);
     else if (d < 2)
@@ -142,9 +153,9 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     else if (d < 8)
       cost_road_profile += line(d, LANE_DEFINITION_CENTER, PENALTY_LANE_CENTER, 8, PENALTY_LINE_DASHED);
     else if (d < 10)
-      cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, LANE_DEFINITION_RIGHT, PENALTY_LANE_RIGHT);
+        cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, variable_right_lane_definition, PENALTY_LANE_RIGHT);
     else if (d < 12)
-      cost_road_profile += line(d, LANE_DEFINITION_RIGHT, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
+        cost_road_profile += line(d, variable_right_lane_definition, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
     else
       cost_road_profile += line(d, 12, PENALTY_LINE_SOLID, 13, PENALTY_OFF_ROAD);
 
@@ -168,11 +179,11 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   cost_names.push_back("maxjerk");
 
 
-  //// TODO: Add a distance-traveled negative cost.
+    // TODO: Add a distance-traveled negative cost.
 
 
 
-  //// TODO: Add a positive cost for long-time trajectories (dump the vdeviation cost?).
+    // TODO: Add a positive cost for long-time trajectories (dump the vdeviation cost?).
 
 
 
@@ -183,14 +194,16 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
 
   // Print the parts.
   int print_width = 12;
-  if (label.length() > 0 && heading) {
+
+    if (label.length() > 0 && heading) {
     cout << "           ";
     for (const char *n : cost_names) {
       printf("%*s", print_width, n);
     }
     cout << endl;
   }
-  int largest_component = argmax(cost_parts);
+
+    int largest_component = argmax(cost_parts);
   const char *reason = cost_names[largest_component];
   if (label.length() > 0) {
     cout << "cost = sum(";
