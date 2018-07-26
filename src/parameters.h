@@ -47,6 +47,9 @@ extern double DISTANCE_ZERO_COST_BESIDE;
 extern double FACTOR_ACCEL;
 extern double FACTOR_JERK;
 
+extern double FACTOR_SPEED_EXCESS;
+extern double CRITICAL_SPEED_EXCESS;
+
 extern double FACTOR_ACCEL_EXCESS;
 extern double CRITICAL_ACCEL_EXCESS;
 

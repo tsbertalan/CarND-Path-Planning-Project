@@ -3,6 +3,7 @@
 //
 #include "parameters.h"
 
+
 // PLANNER
 int NUM_PLANS = 128;
 bool SHOW_COSTS_TABLE = false;
@@ -11,14 +12,14 @@ bool DEBUG = false;
 
 double MIPH_TO_MPS = (5280/1.)*(1./3.2808)*(1/3600.);
 
-double GOAL_SPEED_MPH = 46;
-double MAX_TARGET_SPEED = (GOAL_SPEED_MPH + 1)*MIPH_TO_MPS;
+double GOAL_SPEED_MPH = 47;
+double MAX_TARGET_SPEED = GOAL_SPEED_MPH * MIPH_TO_MPS;
 double MIN_TARGET_SPEED = 1;
-double MAX_SPEED_DIFFERENCE = 10;
+double MAX_SPEED_DIFFERENCE = 20;
 double MIN_SPEED_DIFFERENCE = -MAX_TARGET_SPEED + 1;
 double EXT_TIME = 1;
 
-double MIN_REUSE_TIME = 16 * .02;
+double MIN_REUSE_TIME = 32 * .02;
 double MIN_DT = 2;
 
 double MAX_DT = 3;
@@ -30,41 +31,44 @@ double LANE_DEFINITION_RIGHT = 9.8;
 bool DO_CACHE = true;
 
 // COST
-double FACTOR_DISTANCE = 7;
+double FACTOR_DISTANCE = 10;
 
-double CAR_WIDTH = 116. * 4. / 176.;
+double CAR_WIDTH = (116. - 10) * 4. / 176.;
 double CAR_LENGTH = 214. * 4. / 176.;
 
 double PENALTY_FATAL = 10;
 
 double DISTANCE_ZERO_COST_FOLLOW = -6 * CAR_LENGTH;
-double DISTANCE_ZERO_COST_LEAD = 4 * CAR_LENGTH;
+double DISTANCE_ZERO_COST_LEAD = 3 * CAR_LENGTH;
 double DISTANCE_ZERO_COST_BESIDE = .189 * CAR_WIDTH;
 
-double FACTOR_ACCEL = 1./32.;
+double FACTOR_ACCEL = 1./24.;
 double FACTOR_JERK = 1./96.;
 
-double FACTOR_ACCEL_EXCESS = 2;
+double FACTOR_SPEED_EXCESS = 4;
+double CRITICAL_SPEED_EXCESS = 49.5 * MIPH_TO_MPS;
+
+double FACTOR_ACCEL_EXCESS = 4;
 double CRITICAL_ACCEL_EXCESS = 9;
 
-double FACTOR_JERK_EXCESS = 2;
+double FACTOR_JERK_EXCESS = 4;
 double CRITICAL_JERK_EXCESS = 9;
 
 double GOAL_SPEED = GOAL_SPEED_MPH*MIPH_TO_MPS;
 
 double SPEED_LIMIT = 50 * MIPH_TO_MPS;
-double VDEV_MID = -10 * MIPH_TO_MPS;
-double SPEED_COST_ZERO = 1.5;
-double SPEED_COST_MID = .75;
-double SPEED_COST_LIMIT = 2;
-double FACTOR_VDEV = .4;
+double VDEV_MID = -15 * MIPH_TO_MPS;
+double SPEED_COST_ZERO = 2;
+double SPEED_COST_MID = 1.5;
+double SPEED_COST_LIMIT = 6;
+double FACTOR_VDEV = .5;
 
 double FACTOR_LANE_SW = .01;
 
-double CRITICAL_SWITCHTIME = 1750;
+double CRITICAL_SWITCHTIME = 3000;
 
 double SCALE_SWITCHTIME = .01;
-double FACTOR_FASTSW = .4;
+double FACTOR_FASTSW = .8;
 double FACTOR_CRP = .003;
 
 double PENALTY_LANE_LEFT = .1;

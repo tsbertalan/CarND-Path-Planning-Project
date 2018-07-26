@@ -27,8 +27,8 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
       double s = plan.s(t);
       double d = plan.d(t);
       FrenetPose other = neighbor.future_position_frenet(t);
-      double ds = fabs(s - other.s);
-      double dd = fabs(d - other.d);
+      double ds = s - other.s;
+      double dd = d - other.d;
 
         double cost = 1;
 
@@ -108,7 +108,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     } else
         cost_v_deviation = line(dv, 0, 0, SPEED_LIMIT - GOAL_SPEED, SPEED_COST_LIMIT);
 
-    cost_parts.push_back(cost_v_deviation * FACTOR_VDEV);
+    cost_parts.push_back(max(cost_v_deviation * FACTOR_VDEV, 0.));
   cost_names.push_back("vdev");
 
 
@@ -131,9 +131,9 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   double cost_road_profile = 0;
 
 
-  // Make boolean costs for exceeding the jerk or accel limits.
+  // Make boolean costs for exceeding limits.
+  double max_speed = 0;
   double max_accel = 0;
-  double max_jerk = 0;
 
 
   // Construct the cost piecewise from lines.
@@ -160,23 +160,24 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
       cost_road_profile += line(d, 12, PENALTY_LINE_SOLID, 13, PENALTY_OFF_ROAD);
 
 
-    // Track the maximum jerk or acceleration.
+    // Track the maximum speed, acceleration, and jerk.
+    max_speed = max(plan.speed(t), max_speed);
     max_accel = max(fabs(plan.accel(t)), max_accel);
-    max_jerk = max(fabs(plan.jerk(t)), max_jerk);
 
   }
   cost_parts.push_back(cost_road_profile*FACTOR_CRP);
   cost_names.push_back("CRP");
 
 
+  //// Add a max-speed cost.
+  cost_parts.push_back((double) (max_speed > CRITICAL_SPEED_EXCESS) * FACTOR_SPEED_EXCESS);
+  cost_names.push_back("maxspd");
+
+
   //// Add a max-accel cost.
   cost_parts.push_back((double) (max_accel > CRITICAL_ACCEL_EXCESS)*FACTOR_ACCEL_EXCESS);
   cost_names.push_back("maxaccel");
 
-
-  //// Add a max-jerk cost.
-  cost_parts.push_back((double) (max_jerk > CRITICAL_JERK_EXCESS)*FACTOR_JERK_EXCESS);
-  cost_names.push_back("maxjerk");
 
 
     // TODO: Add a distance-traveled negative cost.
