@@ -48,7 +48,6 @@ class Planner {
 
   long cost_evaluation_time;
 
- private:
   long last_lane_change_time_ms;
 
   int get_lane(double d);
@@ -66,6 +65,9 @@ class Planner {
   int uniform_random(int low = 0, int high_plus_one = 11);
 
   long now();
+
+    double running_total_plantime;
+    int count_calls;
 
  public:
   CoordinateTransformer transform;

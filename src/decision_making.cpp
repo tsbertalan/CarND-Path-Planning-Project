@@ -49,8 +49,8 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   // Evaluate costs.
   double costs_arr[plans.size()]; // Use arrays to allow for OpenMP.
   CostDecision decisions_arr[plans.size()];
-  //#pragma omp parallel for
   cost_evaluation_time = now();
+#pragma omp parallel for
   for (int i = 0; i < plans.size(); i++) {
     Trajectory plan = plans[i];
     string planName = plan_names[i];
@@ -95,8 +95,13 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
   if (DEBUG) show_map(plans, neighbors, costs);
 
   long end_planner_ms = now();
-  if (plan_changes_goal(plan) || DEBUG)
-    cout << " == planner took " << (end_planner_ms - start_planner_ms) << " [ms] == " << endl;// << endl;
+    if (plan_changes_goal(plan) || DEBUG) {
+        long plantime = (end_planner_ms - start_planner_ms);
+        cout << " == planner took " << plantime << " [ms];";
+        running_total_plantime += plantime;
+        count_calls++;
+        cout << " running mean is " << running_total_plantime / count_calls << " [ms] ==" << endl;
+    }
 
 
   // Log the plan.
@@ -200,6 +205,8 @@ Planner::Planner(CoordinateTransformer &transform) : transform(transform), log(P
   construction_time = now();
   last_lane_change_time_ms = 0;
   last_plan_length = 0;
+    count_calls = 0;
+    running_total_plantime = 0;
 }
 
 void Planner::show_map(vector<Trajectory> &plans, vector<Neighbor> neighbors, vector<double> costs) {
