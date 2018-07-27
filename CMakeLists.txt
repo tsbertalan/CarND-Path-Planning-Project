@@ -14,9 +14,27 @@ if (OPENMP_FOUND)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif ()
 
-set(sources src/jmt.cpp src/jmt.h src/utils.h src/decision_making.h src/decision_making.cpp src/coordinates.h src/coordinates.cpp src/neighbor.cpp src/neighbor.h src/trajectory.cpp src/trajectory.h src/graph.h src/utils.cpp src/get_cost.cpp src/spline.cpp src/logger.cpp src/logger.h src/parameters.h src/parameters.cpp)
-
-find_package(PythonLibs REQUIRED)
+set(
+        sources
+        src/jmt.cpp
+        src/jmt.h src/utils.h
+        src/decision_making.h
+        src/decision_making.cpp
+        src/coordinates.h
+        src/coordinates.cpp
+        src/neighbor.cpp
+        src/neighbor.h
+        src/trajectory.cpp
+        src/trajectory.h
+        src/graph.h
+        src/utils.cpp
+        src/get_cost.cpp
+        src/spline.cpp
+        src/logger.cpp
+        src/logger.h
+        src/parameters.h
+        src/parameters.cpp
+)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
@@ -29,13 +47,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-include_directories(/usr/include/python2.7)
-link_directories(/usr/include/python2.7)
-
-
 add_executable(test_program ${sources} src/test.cpp)
 
 add_executable(path_planning ${sources} src/main.cpp)
 
-
-target_link_libraries(path_planning z ssl uv uWS python2.7)
+target_link_libraries(path_planning z ssl uv uWS)
