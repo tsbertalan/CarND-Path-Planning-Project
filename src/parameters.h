@@ -56,7 +56,7 @@ extern double CRITICAL_ACCEL_EXCESS;
 extern double FACTOR_JERK_EXCESS;
 extern double CRITICAL_JERK_EXCESS;
 
-// If goal speed is too close to MAX_SPEED_CONSIDERED,
+// If goal speed is too close to MAX_TARGET_SPEED,
 // we'll be starved for fast-enough trajectories,
 // and might drop other criteria.
 extern double GOAL_SPEED;
