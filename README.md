@@ -12,6 +12,45 @@ Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoi
 
 The highway's waypoints loop around so the frenet s value, distance along the road, goes from 0 to 6945.554.
 
+## Methods
+
+### Path Definition
+
+all in frenet frame
+
+callable s(t), d(t) function
+
+also derivatives are callable
+
+piecewise responsibility
+
+separate t0 and t1 per piece
+
+t0 to tmax
+
+greater than tmax gives projection of final derivatives
+
+
+### Path Extension
+
+originally, take given last unfollowed points--bad world to Frenet conversion though.
+
+Instead, shift responsibility points and t0 t1 points, maybe deleting pieces
+
+Then, extend with JMT maintaining initial... what
+
+### Monte Carlo Search
+
+i searched for the lowest cost path in a space spanned by...
+
+at first, regular grid, but curse of dimensionality
+
+
+### Cost Function
+
+
+
+
 ## Basic Build Instructions
 
 1. Clone this repo.

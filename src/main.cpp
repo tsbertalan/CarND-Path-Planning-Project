@@ -8,9 +8,6 @@
 #include "coordinates.h"
 
 // https://github.com/lava/matplotlib-cpp
-#include "matplotlibcpp.h"
-
-namespace plt = matplotlibcpp;
 
 // https://github.com/jal278/plotpipe
 #include "graph.h"
