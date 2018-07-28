@@ -29,7 +29,7 @@ double MIPH_TO_MPS = (5280/1.)*(1./3.2808)*(1/3600.);
 /////////////////////////////////////////////////////
 
 // How big should our Monte Carlo search be?
-int NUM_PLANS = 128;
+int NUM_PLANS = 256;
 
 // Cruise control
 double GOAL_SPEED_MPH = 47;
