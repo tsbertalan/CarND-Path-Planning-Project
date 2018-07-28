@@ -36,6 +36,7 @@ struct CostDecision {
   vector<const char *> cost_part_names;
 };
 
+// Given state and perception information, provide an optimal plan.
 class Planner {
  private:
   plot map_plot;
@@ -66,8 +67,8 @@ class Planner {
 
   long now();
 
-    double running_total_plantime;
-    int count_calls;
+  double running_total_plantime;
+  int count_calls;
 
  public:
   CoordinateTransformer transform;

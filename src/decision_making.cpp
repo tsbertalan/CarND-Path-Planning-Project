@@ -50,6 +50,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
     double costs_arr[plans.size()]; // Use arrays to allow for OpenMP.
     CostDecision decisions_arr[plans.size()];
     cost_evaluation_time = now();
+  // Unfortunately OpenMP messes up the of the costs table slightly.
 #pragma omp parallel for
     for (int i = 0; i < plans.size(); i++) {
         Trajectory plan = plans[i];
@@ -92,7 +93,7 @@ Planner::make_plan(WorldPose current, double current_speed, int num_unused, vect
         last_lane_change_time_ms = now();
     }
 
-    if (DEBUG) show_map(plans, neighbors, costs);
+  if (SHOW_MAP) show_map(plans, neighbors, costs);
 
     long end_planner_ms = now();
     if (plan_changes_goal(plan) || DEBUG) {

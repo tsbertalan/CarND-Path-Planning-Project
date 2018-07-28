@@ -1,6 +1,8 @@
 //
 // Created by tsbertalan on 7/3/18.
 //
+// Some abandoned testing code
+//
 #include <iostream>
 #include "coordinates.h"
 

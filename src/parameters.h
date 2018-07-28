@@ -1,6 +1,7 @@
 //
 // Created by tsbertalan on 7/15/18.
 //
+// See implementation/definition file for parameter comments.
 
 #ifndef PATH_PLANNING_PARAMETERS_H
 #define PATH_PLANNING_PARAMETERS_H
@@ -10,6 +11,7 @@ extern int NUM_PLANS;
 extern bool SHOW_COSTS_TABLE;
 extern bool LOGGING;
 extern bool DEBUG;
+extern bool SHOW_MAP;
 
 extern double MIPH_TO_MPS;
 
@@ -27,10 +29,9 @@ extern double MAX_DT;
 extern double LANE_DEFINITION_LEFT;
 extern double LANE_DEFINITION_CENTER;
 extern double LANE_DEFINITION_RIGHT;
-// TRAJECTORY GENERATION
+
 extern bool DO_CACHE;
 
-// COST
 extern double FACTOR_DISTANCE;
 
 extern double CAR_WIDTH;
@@ -56,9 +57,6 @@ extern double CRITICAL_ACCEL_EXCESS;
 extern double FACTOR_JERK_EXCESS;
 extern double CRITICAL_JERK_EXCESS;
 
-// If goal speed is too close to MAX_TARGET_SPEED,
-// we'll be starved for fast-enough trajectories,
-// and might drop other criteria.
 extern double GOAL_SPEED;
 
 extern double SPEED_LIMIT;

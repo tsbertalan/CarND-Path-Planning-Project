@@ -32,6 +32,7 @@ WorldPose Neighbor::future_position(double dt) {
 }
 
 FrenetPose Neighbor::future_position_frenet(double dt) {
+  // Compute future position by projecting a straight line in Frenet coordinates.
   FrenetPose next;
   next.s = current_fp.s + dt*vs;
   next.d = current_fp.d + dt*vd;

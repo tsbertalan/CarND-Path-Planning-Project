@@ -30,7 +30,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
       double ds = s - other.s;
       double dd = d - other.d;
 
-        double cost = 1;
+      double cost = 1;
 
       if (
         // Treat collisions as fatal.
@@ -42,24 +42,20 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
           ) {
         cost = PENALTY_FATAL;
 
-//     } else if (dd < -CAR_WIDTH || dd > CAR_WIDTH) {
-//        // Passing is fine.
-//        cost = 0;
-
       } else {
-          // Passing is mostly fine.
-          cost *= max(0., min(1.,
-                              line(dd, -CAR_WIDTH - DISTANCE_ZERO_COST_BESIDE, 0, -CAR_WIDTH, 1)
-          ));
-          cost *= max(0., min(1.,
-                              line(dd, CAR_WIDTH + DISTANCE_ZERO_COST_BESIDE, 0, CAR_WIDTH, 1)
-          ));
+        // Passing is mostly fine.
+        cost *= max(0., min(1.,
+                            line(dd, -CAR_WIDTH - DISTANCE_ZERO_COST_BESIDE, 0, -CAR_WIDTH, 1)
+        ));
+        cost *= max(0., min(1.,
+                            line(dd, CAR_WIDTH + DISTANCE_ZERO_COST_BESIDE, 0, CAR_WIDTH, 1)
+        ));
 
         // Following or being followed is linearly costly with s-distance.
         if (ds > 0)
-            cost *= max(line(ds, CAR_LENGTH, 1, CAR_LENGTH + DISTANCE_ZERO_COST_LEAD, 0), 0.);
+          cost *= max(line(ds, CAR_LENGTH, 1, CAR_LENGTH + DISTANCE_ZERO_COST_LEAD, 0), 0.);
         else
-            cost *= max(line(ds, -CAR_LENGTH, 1, -CAR_LENGTH + DISTANCE_ZERO_COST_FOLLOW, 0), 0.);
+          cost *= max(line(ds, -CAR_LENGTH, 1, -CAR_LENGTH + DISTANCE_ZERO_COST_FOLLOW, 0), 0.);
       }
 
       if (cost > cost_dist) {
@@ -72,43 +68,18 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   cost_names.push_back("dist");
 
 
-  //// Add up the total acceleration.
-  // TODO: Penalize latitudinal (d) and longitudinal (s) acceleration separately, and nonlinearly (increase cost sharply past limits).
-  double cost_accel = 0;
-  int num_accel = 0;
-  double cost_jerk = 0;
-  int num_jerk = 0;
-  for (double t = 0; t <= plan.t_max(); t += .02) {
-    double accel = plan.accel(t);
-    if (accel > cost_accel)
-      cost_accel = accel;
-    double jerk = plan.jerk(t);
-    if (jerk > cost_jerk)
-      cost_jerk = jerk;
-  }
-
-  cost_parts.push_back(cost_accel*FACTOR_ACCEL);
-  cost_names.push_back("accel");
-
-  cost_parts.push_back(cost_jerk*FACTOR_JERK);
-  cost_names.push_back("jerk");
-
-
-  // Put a pseudo-boolean cost on trajectories whose average accel exceeds
-
-
   //// Find the mean deviation from goal velocity; penalizing larger differences more.
-    double dv = plan.speed(plan.t_max()) - GOAL_SPEED;
-    double cost_v_deviation;
-    if (dv < 0) {
-        if (dv < VDEV_MID)
-            cost_v_deviation = line(dv, VDEV_MID, SPEED_COST_MID, -GOAL_SPEED, SPEED_COST_ZERO);
-        else
-            cost_v_deviation = line(dv, 0, 0, VDEV_MID, SPEED_COST_MID);
-    } else
-        cost_v_deviation = line(dv, 0, 0, SPEED_LIMIT - GOAL_SPEED, SPEED_COST_LIMIT);
+  double dv = plan.speed(plan.t_max()) - GOAL_SPEED;
+  double cost_v_deviation;
+  if (dv < 0) {
+    if (dv < VDEV_MID)
+      cost_v_deviation = line(dv, VDEV_MID, SPEED_COST_MID, -GOAL_SPEED, SPEED_COST_ZERO);
+    else
+      cost_v_deviation = line(dv, 0, 0, VDEV_MID, SPEED_COST_MID);
+  } else
+    cost_v_deviation = line(dv, 0, 0, SPEED_LIMIT - GOAL_SPEED, SPEED_COST_LIMIT);
 
-    cost_parts.push_back(max(cost_v_deviation * FACTOR_VDEV, 0.));
+  cost_parts.push_back(max(cost_v_deviation*FACTOR_VDEV, 0.));
   cost_names.push_back("vdev");
 
 
@@ -127,21 +98,21 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   cost_names.push_back("fastsw");
 
 
-  // Make a lane-centering and out-of-road cost.
+  // Make a lane-centering and out-of-road cost (CRP).
   double cost_road_profile = 0;
 
 
   // Make boolean costs for exceeding limits.
   double max_speed = 0;
   double max_accel = 0;
+  double max_jerk = 0;
 
-
-  // Construct the cost piecewise from lines.
+  // Construct the CRP cost piecewise from lines.
   for (double t = 0; t <= plan.t_max(); t += .02) {
     double d = plan.d(t);
     double s = plan.s(t);
     // Hard-code in a problem area in the map to be avoided.
-      double variable_right_lane_definition = in_bad_region_pseudobool(s) * BAD_MAP_DRIFT_LEFT + LANE_DEFINITION_RIGHT;
+    double variable_right_lane_definition = in_bad_region_pseudobool(s)*BAD_MAP_DRIFT_LEFT + LANE_DEFINITION_RIGHT;
     if (d < 0)
       cost_road_profile += line(d, -1, PENALTY_OFF_ROAD, 0, PENALTY_LINE_SOLID);
     else if (d < 2)
@@ -153,38 +124,48 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     else if (d < 8)
       cost_road_profile += line(d, LANE_DEFINITION_CENTER, PENALTY_LANE_CENTER, 8, PENALTY_LINE_DASHED);
     else if (d < 10)
-        cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, variable_right_lane_definition, PENALTY_LANE_RIGHT);
+      cost_road_profile += line(d, 8, PENALTY_LINE_DASHED, variable_right_lane_definition, PENALTY_LANE_RIGHT);
     else if (d < 12)
-        cost_road_profile += line(d, variable_right_lane_definition, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
+      cost_road_profile += line(d, variable_right_lane_definition, PENALTY_LANE_RIGHT, 12, PENALTY_LINE_SOLID);
     else
       cost_road_profile += line(d, 12, PENALTY_LINE_SOLID, 13, PENALTY_OFF_ROAD);
-
 
     // Track the maximum speed, acceleration, and jerk.
     max_speed = max(plan.speed(t), max_speed);
     max_accel = max(fabs(plan.accel(t)), max_accel);
+    max_jerk = max(fabs(plan.jerk(t)), max_jerk);
 
   }
   cost_parts.push_back(cost_road_profile*FACTOR_CRP);
   cost_names.push_back("CRP");
 
 
-  //// Add a max-speed cost.
-  cost_parts.push_back((double) (max_speed > CRITICAL_SPEED_EXCESS) * FACTOR_SPEED_EXCESS);
+  //// Add a binary max-speed cost.
+  cost_parts.push_back((double) (max_speed > CRITICAL_SPEED_EXCESS)*FACTOR_SPEED_EXCESS);
   cost_names.push_back("maxspd");
 
 
-  //// Add a max-accel cost.
+  //// Add a binary max-accel cost.
   cost_parts.push_back((double) (max_accel > CRITICAL_ACCEL_EXCESS)*FACTOR_ACCEL_EXCESS);
   cost_names.push_back("maxaccel");
 
 
+  //// Add a smooth max-accel cost.
+  // TODO: Penalize latitudinal (d) and longitudinal (s) acceleration separately, and nonlinearly (increase cost sharply past limits).
+  cost_parts.push_back(max_accel*FACTOR_ACCEL);
+  cost_names.push_back("accel");
 
-    // TODO: Add a distance-traveled negative cost.
+  //// Add a smooth max-jerk cost.
+  cost_parts.push_back(max_jerk*FACTOR_JERK);
+  cost_names.push_back("jerk");
 
 
 
-    // TODO: Add a positive cost for long-time trajectories (dump the vdeviation cost?).
+  // TODO: Add a distance-traveled negative cost.
+
+
+
+  // TODO: Add a positive cost for long-time trajectories (dump the vdeviation cost?).
 
 
 
@@ -196,7 +177,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   // Print the parts.
   int print_width = 12;
 
-    if (label.length() > 0 && heading) {
+  if (label.length() > 0 && heading) {
     cout << "           ";
     for (const char *n : cost_names) {
       printf("%*s", print_width, n);
@@ -204,7 +185,7 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
     cout << endl;
   }
 
-    int largest_component = argmax(cost_parts);
+  int largest_component = argmax(cost_parts);
   const char *reason = cost_names[largest_component];
   if (label.length() > 0) {
     cout << "cost = sum(";

@@ -21,6 +21,7 @@ get_frenet(
     const std::vector<double> &maps_x, const std::vector<double> &maps_y
 );
 
+// Transform from Cartesian x,y coordinates to Frenet s,d,yaw coordinates
 std::vector<double>
 get_frenet(
     double x, double y, double theta,
@@ -30,14 +31,6 @@ get_frenet(
 );
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
-std::vector<double> get_xy(
-    double s, double d,
-    const std::vector<double> &maps_s,
-    const std::vector<double> &maps_x,
-    const std::vector<double> &maps_y
-);
-
-// Alternate
 std::vector<double> get_world(
     double s, double d, double yaw,
     const std::vector<double> &maps_s,
@@ -59,6 +52,7 @@ double deg2rad(double x);
 
 double rad2deg(double x);
 
+// Define three simple pose types, so we can enforce correct frame usage.
 struct WorldPose {
   double x;
   double y;
@@ -77,34 +71,49 @@ struct FrenetPose {
   double yaw;
 };
 
+// Wrap coordinate transformations in a class that keeps map data.
 class CoordinateTransformer {
  private:
+
+  // Lists of the map data.
   std::vector<double> map_waypoints_x;
   std::vector<double> map_waypoints_y;
   std::vector<double> map_waypoints_s;
   std::vector<double> map_waypoints_dx;
   std::vector<double> map_waypoints_dy;
-  WorldPose car_reference;
+
+  // For smoothing the map data, keep spline interpolants.
   spline::tk::spline spline_x, spline_y, spline_dx, spline_dy;
+
+  // The car's reference position for transformations to/from the car frame.
+  WorldPose car_reference;
+
  public:
 
+  // Largest s value in the loop.
   double max_s;
+
   CoordinateTransformer();
 
+  // Set reference point for transformations to/from car frame.
   void set_reference(WorldPose car);
 
+  // Convert to x,y global frame.
   WorldPose to_world(CarPose from);
 
   WorldPose to_world(FrenetPose from);
 
+  // Convert to car frame.
   CarPose to_car(WorldPose from);
 
   CarPose to_car(FrenetPose from);
 
+  // Convert to Frenet global frame.
   FrenetPose to_frenet(CarPose from);
 
   FrenetPose to_frenet(WorldPose from);
 
+  // Provide access to the map waypoints.
   std::vector<std::vector<double>> get_waypoints();
 
 };
