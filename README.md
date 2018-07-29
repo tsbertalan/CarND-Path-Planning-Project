@@ -16,6 +16,8 @@ See the [original forked repository](https://github.com/udacity/CarND-Path-Plann
 
 Briefly, my planner takes a Monte Carlo approach, where I sample a population of candidate trajectories at each step and choose the trajectory with the lowest cost. I construct each plan to be a jerk-minimizing trajectory (JMT) per [1] for the latitudinal component *d* and longitudinal component *s* of the pose in the frame that curves with the road (the "Frenét" frame).
 
+Constant parameters are all included as global variables, and are stored along with explanatory comments in [parameters.cpp](src/parameters.cpp).
+
 
 ### Path Definition
 
