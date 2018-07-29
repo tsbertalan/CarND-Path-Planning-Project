@@ -4,6 +4,13 @@
 <p align="center">
   <img src="images/path_planning-short_clip.gif" />
 </p>
+<p align="center">
+  <em>
+    Video accelerated; see
+    <a href="https://youtu.be/hSrKkJBCz9w">youtu.be/hSrKkJBCz9w</a>
+    for more.
+  </em>
+</p>
    
 ## Goals
 In this project the goal is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. We are provided with the car's location and the locations of its neighbors, as well as a map consisting of waypoints spaced every 30 meters along the highway's length. Sensor fusion for neighbors is perfect and noiseless, and commanded trajectories are followed exactly. 
