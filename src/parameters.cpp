@@ -3,6 +3,8 @@
 //
 #include "parameters.h"
 
+
+
 /////////////////////////////////////////////////////
 ////////// PRINTING, PLOTTING, AND LOGGING //////////
 /////////////////////////////////////////////////////
@@ -22,6 +24,7 @@ bool SHOW_MAP = false;
 
 // Conversion factor from miles per hour to meters per second
 double MIPH_TO_MPS = (5280/1.)*(1./3.2808)*(1/3600.);
+
 
 
 /////////////////////////////////////////////////////
@@ -61,6 +64,7 @@ double LANE_DEFINITION_RIGHT = 9.8;
 
 // Should we cache plan evaluations?
 bool DO_CACHE = true;
+
 
 
 /////////////////////////////////////////////////////
@@ -129,6 +133,8 @@ double BAD_MAP_BEGIN = 4900; // s coordinates [m]
 double BAD_MAP_END = 5080;
 double BAD_MAP_DRIFT_LEFT = -.25; // d deviation [m]
 
+// Penalty for planning a path to a lane that has cars ahead
+// (and therefore which will more likely impede our progress in the future)
 double FACTOR_CARS_AHEAD = .5;
 
 
