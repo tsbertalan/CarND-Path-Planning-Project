@@ -129,6 +129,8 @@ double BAD_MAP_BEGIN = 4900; // s coordinates [m]
 double BAD_MAP_END = 5080;
 double BAD_MAP_DRIFT_LEFT = -.25; // d deviation [m]
 
+double FACTOR_CARS_AHEAD = .5;
+
 
 
 /////////////////////////////////////////////////////

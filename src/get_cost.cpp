@@ -155,9 +155,24 @@ CostDecision Planner::get_cost(Trajectory &plan, vector<Neighbor> neighbors, str
   cost_parts.push_back(max_accel*FACTOR_ACCEL);
   cost_names.push_back("accel");
 
+
   //// Add a smooth max-jerk cost.
   cost_parts.push_back(max_jerk*FACTOR_JERK);
   cost_names.push_back("jerk");
+
+
+  //// Add a binary cost if there are neighbors ahead in the target lane.
+  bool cars_ahead = false;
+  for (auto neighbor : neighbors) {
+    // If the neighbor is ahead of us, but not too far...
+    if (neighbor.current_fp.s > plan.s(0) && neighbor.current_fp.s < plan.s(plan.t_max())) {
+      if (get_lane(neighbor.current_fp)==get_lane(plan)) {
+        cars_ahead = true;
+      }
+    }
+  }
+  cost_parts.push_back(FACTOR_CARS_AHEAD*cars_ahead);
+  cost_names.push_back("ahead");
 
 
 

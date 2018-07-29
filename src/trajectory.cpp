@@ -33,7 +33,6 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
 
   } else {
     begin = state(t_replan);
-
   }
 
 
@@ -44,14 +43,16 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
   end.d.y = d;
   end.d.yp = dp;
   end.d.ypp = dpp;
+
+  // If the distance to drive wasn't given, project using the mean speed.
   if (DS==-1) {
     double mean_s_vel = (begin.s.yp + sp)/2;
     DS = mean_s_vel*DT;
   }
   end.s.y = begin.s.y + DS;
 
+  // Copy what we need to the new child trajectory.
   Trajectory child(transform);
-
   child.segments = segments;
 
   // Only keep segments that overlap with [t_reuse, t_replan],
@@ -61,7 +62,6 @@ Trajectory::generate_extension(FrenetPose current, double t_reuse, double t_repl
   // Now, work in the trimmed frame.
   t_replan -= t_reuse;
   t_reuse = 0;
-
 
   // Construct the new trajectory segment.
   child.segments.push_back(

@@ -13,10 +13,12 @@
 #include "jmt.h"
 #include "spline.h"
 
+// JMT boundary conditions are state, dstate, and ddstate.
 struct State {
   double y, yp, ypp;
 };
 
+// Complete state has longitudinal and latitudinal components.
 struct FullState {
   State s, d;
 };

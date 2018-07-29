@@ -80,11 +80,12 @@ extern double PENALTY_LANE_RIGHT;
 extern double PENALTY_LINE_SOLID;
 extern double PENALTY_LINE_DASHED;
 extern double PENALTY_OFF_ROAD;
-extern double BAD_MAP_BEGIN;
 
+extern double BAD_MAP_BEGIN;
 extern double BAD_MAP_END;
-extern double PENALTY_BAD_MAP;
 extern double BAD_MAP_DRIFT_LEFT;
+
+extern double FACTOR_CARS_AHEAD;
 
 extern double COST_VIZ_CAP;
 extern int NUM_PLANS_VISUALIZED;
