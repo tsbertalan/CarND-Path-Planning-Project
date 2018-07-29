@@ -2,7 +2,8 @@
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
 <p align="center">
-  <img src="images/path_planning-short_clip.gif" />
+  <img src="images/path_planning-short_clip.gif" width=40% />
+  <img src="images/path_planning-short_double_pass.gif" width=40% />
 </p>
 <p align="center">
   <em>
