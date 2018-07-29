@@ -1,52 +1,74 @@
 # CarND-Path-Planning-Project
-Self-Driving Car Engineer Nanodegree Program
+[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
    
-### Simulator.
-You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).
-
-### Goals
-In this project your goal is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. You will be provided the car's localization and sensor fusion data, there is also a sparse map list of waypoints around the highway. The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible, note that other cars will try to change lanes too. The car should avoid hitting other cars at all cost as well as driving inside of the marked road lanes at all times, unless going from one lane to another. The car should be able to make one complete loop around the 6946m highway. Since the car is trying to go 50 MPH, it should take a little over 5 minutes to complete 1 loop. Also the car should not experience total acceleration over 10 m/s^2 and jerk that is greater than 10 m/s^3.
-
-#### The map of the highway is in data/highway_map.txt
-Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
-
-The highway's waypoints loop around so the frenet s value, distance along the road, goes from 0 to 6945.554.
+## Goals
+In this project the goal is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. We are provided with the car's location and the locations of its neighbors, as well as a map consisting of waypoints spaced every 30 meters along the highway's length. The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible. We must stay on our side of the road, not take too long between lanes, and limit our acceleration to below 10 m/s/s and our jerk to below 10 m/s/s/s.
 
 ## Methods
 
+Briefly, my planner takes a Monte Carlo approach, where I sample a population of candidate trajectories at each step and choose the trajectory with the lowest cost. I construct each plan to be a jerk-minimizing trajectory (JMT) per [1] for the latitudinal component *d* and longitudinal component *s* of the pose in the frame that curves with the road (the "Frenét" frame).
+
 ### Path Definition
 
-all in frenet frame
+Since the "default" action--driving straight forward--is best described as a constant longitudinal velocity and a zero latitudinal velocity, I do all planning in the Frenét coordinate system. More importantly, this allows us to choose the boundary conditions for each newly generated trajectory segment in a reasonable way.
 
-callable s(t), d(t) function
+Namely, I set the initial state and first and second derivatives (for both *s* and *d*) to match the first unreused point on the existing trajectory (right after the last reused point), and set the final *s''*, *d'*, and *d''* to zero. The final *s*, *d*, and *s'* are chosen randomly as part of my search method.
 
-also derivatives are callable
+Therefore, my trajectories are constructed as piecewise polynomials for *s* and *d* in time, where continuity is enforced in up to the second derivative. Rather than storing these as discrete evaluated points, I use a `Trajectory` object that maintains a list of `SegmentRemit` objects. These are my piecewise segments, and each is associated with a particular half-open interval of time called its "responsibility". At construction, the endpoints of this interval correspond to the endpoints of the JMT, but this may later change as beginning portions of the plan are marked as driven and discarded, or ending portions are replanned. Offsets are maintained such that the first segment of a trajectory always begins at *t=0*.
 
-piecewise responsibility
+These segments themselves eventually contain two `PolyPath1D` objects, which store a list of six coefficients for their quintic polynomial, and enable evaluation of any derivative of this polynomial at any time (including the zeroth derivative).
 
-separate t0 and t1 per piece
+Emperically, I found that the code ran fastest when the `Trajectory` objects maintained a cache of their *s* and *d* evaluations (implemented using a `std::map<double, double>` from times to values),
+but that caching derivatives did *not* provide a benefit.
 
-t0 to tmax
-
-greater than tmax gives projection of final derivatives
+The entire plan, consisting of multiple JMT-polynomial segments extends from `t=0` to `t=t_max()`, defined as the final JMT endpoint. However, evaluations beyond `t_max()` are possible, and are performed by projecting forward using the final *s* and *d* derivatives.
 
 
 ### Path Extension
 
-originally, take given last unfollowed points--bad world to Frenet conversion though.
+Multiple times per second, I receive back from the simulator the last *x* and *y* vectors that I passed, with the driven points removed from the start. Originally, I used these directly as a starting point for my trajectory, using an integer number of these points for my reused segment. However, in order to enforce derivative continuity, it was necessary to convert these points from world coordinates to Frenét, then either take numerical derivatives or fit a polynomial and take its derivatives. 
 
-Instead, shift responsibility points and t0 t1 points, maybe deleting pieces
+This conversion consistently introduces noise to the process. While fixing some bugs in the world `->` Frenét conversion did help, and so did replacing the 30-meter sampled map waypoints with a more densely sampled spline through the same points, relying on the points returned from the simulator as a starting point for our newly replanned trajectory always eventually led to spurious spikes in acceleration or jerk.
 
-Then, extend with JMT maintaining initial... what
+So, instead, I avoided ever converting trajectories from world to Frenét coordinates, and simply reused my previously-planned Frenét-frame continous (pre-sampled) trajectory. The only piece of information required from the simulator about the past trajectory for this strategy was the *number* of unused points, from which we can infer the last used time. This provides a point at which to chop our last trajectory simply by deleting initial segments, reassigning responsibility domains, and/or shifting JMT starting points in time.
+
+Of course, neighbor positions were still converted from world to Frenét, but, being point estimates rather than whole functions requiring continuity, this proved less of an issue.
+
+
+![image alt](images/glitch1.png)
+<p align="center">*Generated trajectory from previous version of the code including a glitch introduced by buggy world-to-Frenét conversion.*</p>
+
 
 ### Monte Carlo Search
 
-i searched for the lowest cost path in a space spanned by...
+Initially, I used a regular grid of parameters for generating a population of trajectories for costing. However, as I added variation in more parameters, the curse of dimensionality made this infeasible. Instead, I sampled a large fixed number of trajectories with random values of target lane (an integer), final speed (*s* derivative), reuse time, and JMT duration.
 
-at first, regular grid, but curse of dimensionality
+This approach is largely immune to the undersampling that a regular grid of comparable cardinality would have, and, as pointed out in [2], allows for further control of the planner by modifying the sampling method. As a simple demonstration of this concept, I sample final speeds not uniformly at random across the whole range of allowable values, but instead in a narrower window aroud the current speed. In the future, bimodal sampling may be useful to provide a small population of emergency-stop trajectories for consideration.
 
 
 ### Cost Function
+
+After discovering and mitigating bugs introduced by the Frenét coordinate transformation, most of the work of shaping the behavior of the path planner went into defining a reasonable cost function. At the time of this writing, I have the cost components tabulated below.
+
+| Name     | Description |
+|----------|-------------|
+|`dist`    |nonlinear function of distance from neighbors|
+|`vdev`    |nonlinear function of deviation from goal speed|
+|`sw`      |static penalty on lane switching|
+|`fastsw`  |extra penalty on lane switching after recent switch|
+|`CRP`     |shaped cost promoting lane centering and driving on-road, and favoring the center lane|
+|`maxspd`  |static cost for exceeding a speed limit|
+|`maxaccel`|static cost for exceeding an acceleration limit|
+|`accel`   |proportional penalty on acceleration|
+|`jerk`    |proportional penalty on jerk|
+|`ahead`   |static penalty on trajectories with a neighbor less than about 90 m ahead in the target lane|
+
+Several of these components deserve elaboration.
+
+<p align="center">
+<img src=images/crp.png />
+</p>
+<p align="center"><em>Cross-road penalty.</em></p>
 
 
 
@@ -66,9 +88,9 @@ Here is the data provided from the Simulator to the C++ Program
 
 ["y"] The car's y position in map coordinates
 
-["s"] The car's s position in frenet coordinates
+["s"] The car's s position in Frenét coordinates
 
-["d"] The car's d position in frenet coordinates
+["d"] The car's d position in Frenét coordinates
 
 ["yaw"] The car's yaw angle in the map
 
@@ -85,13 +107,13 @@ the path has processed since last time.
 
 #### Previous path's end s and d values 
 
-["end_path_s"] The previous list's last point's frenet s value
+["end_path_s"] The previous list's last point's Frenét s value
 
-["end_path_d"] The previous list's last point's frenet d value
+["end_path_d"] The previous list's last point's Frenét d value
 
 #### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in Frenét coordinates, car's d position in Frenét coordinates. 
 
 ## Details
 
@@ -125,55 +147,8 @@ A really helpful resource for doing this project and creating smooth trajectorie
     cd uWebSockets
     git checkout e94b6e1
     ```
+## Bibliography
 
-## Editor Settings
+[1] Werling, Ziegler, Kammel, & Thrun. (2010). Optimal trajectory generation for dynamic street scenarios in a Frenét frame. Proceedings - IEEE International Conference on Robotics and Automation, 987–993. https://doi.org/10.1109/ROBOT.2010.5509799
 
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
-
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
-
-## Code Style
-
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
-
-## Project Instructions and Rubric
-
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
-
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to ensure
-that students don't feel pressured to use one IDE or another.
-
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
-
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
-
+[2] Mcnaughton, M. (2011). Parallel Algorithms for Real-time Motion Planning Real-time Motion Planning. Doctoral thesis. Carnegie Mellon University.
