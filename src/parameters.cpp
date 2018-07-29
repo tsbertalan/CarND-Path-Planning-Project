@@ -22,6 +22,8 @@ bool DEBUG = false;
 // Requires gnuplot.
 bool SHOW_MAP = false;
 
+
+
 // Conversion factor from miles per hour to meters per second
 double MIPH_TO_MPS = (5280/1.)*(1./3.2808)*(1/3600.);
 
