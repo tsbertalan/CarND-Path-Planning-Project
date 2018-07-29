@@ -106,6 +106,11 @@ In order to discourage tailgating or sudden cut-offs, I addionally impose a cost
 </p>
 <p align="center"><em>Cost function applied at each point in time along a trajectory for each neighbor. Costs shown are imposed when the ego car's center enters the given point.</em></p>
 
+<p align="center">
+<img src=images/measurments.png />
+</p>
+<p align="center"><em>I estimated car width and length by counting pixels in a top-down view, and comparing to the known lane width of 4 meters.</em></p>
+
 This cost is computed at each point in time along a candidate trajectory, with neighboring cars projected forward in time in Frenét coordinates rather than world coordinates using a small finite-difference approximation of their Frenét velocities from their given world velocities.
 
 
