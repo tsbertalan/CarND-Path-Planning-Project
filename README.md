@@ -61,20 +61,20 @@ This approach is largely immune to the undersampling that a regular grid of comp
 
 After discovering and mitigating bugs introduced by the Frenét coordinate transformation, most of the work of shaping the behavior of the path planner went into defining a reasonable cost function. At the time of this writing, I have the cost components tabulated below.
 
-| Name     | Description |
-|----------|-------------|
-|`dist`    |nonlinear function of distance from neighbors|
-|`vdev`    |nonlinear function of deviation from goal speed|
-|`sw`      |static penalty on lane switching|
-|`fastsw`  |extra penalty on lane switching after recent switch|
-|`CRP`     |shaped cost promoting lane centering and driving on-road, and favoring the center lane|
-|`maxspd`  |static cost for exceeding a speed limit|
-|`maxaccel`|static cost for exceeding an acceleration limit|
-|`accel`   |proportional penalty on acceleration|
-|`jerk`    |proportional penalty on jerk|
-|`ahead`   |static penalty on trajectories with a neighbor less than about 90 m ahead in the target lane|
+|   Name   |                 Description                                                                 |
+|----------|---------------------------------------------------------------------------------------------|
+|`dist`    |nonlinear function of distance from neighbors                                                |
+|`vdev`    |nonlinear function of deviation from goal speed                                              |
+|`sw`      |static penalty on lane switching                                                             |
+|`fastsw`  |extra penalty on lane switching after recent switch                                          |
+|`CRP`     |shaped cost promoting lane centering and driving on-road, and favoring the center lane       |
+|`maxspd`  |static cost for exceeding a speed limit                                                      |
+|`maxaccel`|static cost for exceeding an acceleration limit                                              |
+|`accel`   |proportional penalty on acceleration                                                         |
+|`jerk`    |proportional penalty on jerk                                                                 |
+|`ahead`   |static penalty on trajectories with a neighbor less than about 90 m ahead in the target lane |
 
-Several of these components deserve elaboration.
+These cost components are added, each with their own weighting factor, to produce a total cost for each candidate plan. Several of these components deserve elaboration.
 
 
 #### `dist`
