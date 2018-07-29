@@ -10,11 +10,12 @@ In this project the goal is to safely navigate around a virtual highway with oth
 
 The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible. We must stay on our side of the road, not take too long between lanes, and limit our acceleration to below 10 m/s/s and our jerk to below 10 m/s/s/s.
 
-See the [original forked repository](https://github.com/udacity/CarND-Path-Planning-Project) for build dependencies ans other execution notes.
+See the [original forked repository](https://github.com/udacity/CarND-Path-Planning-Project) for build dependencies and other execution notes.
 
 ## Methods
 
 Briefly, my planner takes a Monte Carlo approach, where I sample a population of candidate trajectories at each step and choose the trajectory with the lowest cost. I construct each plan to be a jerk-minimizing trajectory (JMT) per [1] for the latitudinal component *d* and longitudinal component *s* of the pose in the frame that curves with the road (the "Frenét" frame).
+
 
 ### Path Definition
 
@@ -74,7 +75,9 @@ After discovering and mitigating bugs introduced by the Frenét coordinate trans
 |`jerk`    |proportional penalty on jerk                                                                 |
 |`ahead`   |static penalty on trajectories with a neighbor less than about 90 m ahead in the target lane |
 
-These cost components are added, each with their own weighting factor, to produce a total cost for each candidate plan. Several of these components deserve elaboration.
+These cost components are added, each with their own weighting factor, to produce a total cost for each candidate plan. Costs were evaluated in parallel over the entire candidate pool with OpenMP, resulting in a speedup from about 550 to about 160 ms per plan, after which it was feasible to increase the number of plans considered from 128 to 256.
+
+Several of these cost components deserve elaboration.
 
 
 #### `dist`
